@@ -1,42 +1,39 @@
 #include "BlockedList.hpp"
 
+int N;
+class Node {
+  char key[64];
+  int value;
+public:
+  Node (const string &s, int _value): value(_value) {
+    for(int i=0; i<64; i++) {
+      key[i] = (i < s.size()) ? s[i] : 0;
+    }
+  }
+  bool operator < (const Node &rhs) const {
+    return strcmp(key, rhs.key) < 0 || (strcmp(key, rhs.key) == 0 && value < rhs.value);
+  }
+
+  Node& operator = (const Node &rhs)  = default;
+};
+
 int main() {
-  m.write_info(10, 1);
-  m.write_info(3, 7);
-  Node n = {1, "123456789"};
-  int index[10];
-  for(int i=0; i<10; i++) {
-    index[i] = m.write(n);
-    n.a++;
+  int value;
+  char tmp[64];
+  BlockedList<Node, 20> test("test.txt");
+  std::cin >> N;
+  std::string s;
+  for (int i = 1; i <= N; i++) {
+    std::cin >> s;
+    if (s[0] == 'i') {
+      std::cin >> s;
+      std::cin >> value;
+
+    } else if (s[0] == 'f') {
+
+    } else {
+
+    }
   }
-  m.Delete(index[3]);
-  m.Delete(index[5]);
-  m.Delete(index[7]);
-  n.a = 114514;
-  m.write(n);
-  int tmp;
-  for(int i=1; i<=10; i++) {
-    m.get_info(tmp, i);
-    std::cout << tmp << std::endl;
-  }
-  m.print();
-  file.open(file_name, std::ios::in | std::ios::out);
-  file.seekp(4);
-  for (int i = 1; i < 5; i++) {
-    file.write(reinterpret_cast<char *>(&i), sizeof(int));
-  }
-//  file.seekg(0);
-//  file.seekp(0);
-//  int tmp;
-//  while (file.peek() != EOF) {
-//    file.read(reinterpret_cast<char *>(&tmp), sizeof(int));
-//    std::cout << tmp << std::endl;
-//  }
-//  file.seekp(0);
-//  tmp=114514;
-//  for (int i = -10; i < 10; i++) {
-//    file.write(reinterpret_cast<char *>(&tmp), sizeof(int));
-//  }
-  file.close();
   return 0;
 }
