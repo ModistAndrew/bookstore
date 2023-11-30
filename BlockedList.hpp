@@ -29,7 +29,7 @@ struct Block {
     }
     int p = std::lower_bound(data, data + size, t) - data;
     if (p < size && !(data[p] < t) && !(t < data[p])) {
-      std::cout << "Already exists\n";
+//      std::cout << "Already exists\n";
       return;
     }
     std::memmove(data + p + 1, data + p, (size - p) * sizeof(T));
@@ -40,7 +40,7 @@ struct Block {
   bool erase(T t) {
     int p = std::lower_bound(data, data + size, t) - data;
     if (p < size && (data[p] < t || t < data[p])) {
-      std::cout << "Not found\n";
+//      std::cout << "Not found\n";
       return false;
     }
     std::memmove(data + p, data + p + 1, (size - p) * sizeof(T));
@@ -155,7 +155,7 @@ public:
     int startIndexLocal = currentBlock.getFirstNoSmaller(min);
     for(int i=startIndexLocal; i<currentBlock.size; i++) {
       tmp = currentBlock.data[i];
-      if(tmp > max) {
+      if(max < tmp) {
         return ret;
       }
       ret.push_back(tmp);
@@ -164,7 +164,7 @@ public:
       currentBlock = storage.get(indexBlock.data[i].pos);
       for(int j=0; j<currentBlock.size; j++) {
         tmp = currentBlock.data[j];
-        if(tmp > max) {
+        if(max < tmp) {
           return ret;
         }
         ret.push_back(tmp);
