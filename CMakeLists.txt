@@ -4,4 +4,5 @@ project(bookstore)
 set(CMAKE_CXX_STANDARD 17)
 
 add_executable(bookstore main.cpp
-        FileStorage.hpp)
+        FileStorage.hpp
+        DataGen.hpp)

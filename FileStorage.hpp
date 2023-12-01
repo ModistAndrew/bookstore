@@ -14,7 +14,7 @@ template<class T, class INFO>
 class FileStorage {
 private:
   fstream file;
-  string file_name;
+  string fileName;
   static constexpr int T_SIZE = sizeof(T);
   static constexpr int INFO_LEN = sizeof(INFO);
   static constexpr int INT_SIZE = sizeof(int);
@@ -35,7 +35,7 @@ private:
 public:
   FileStorage() = default;
 
-  FileStorage(const string &file_name) : file_name(file_name) {
+  FileStorage(const string &file_name) : fileName(file_name) {
     init();
     file.open(file_name, std::ios::in | std::ios::out);
   }
@@ -45,10 +45,10 @@ public:
   }
 
   void init() {
-    if (std::filesystem::exists(file_name)) {
+    if (std::filesystem::exists(fileName)) {
       return;
     }
-    file.open(file_name, std::ios::out);
+    file.open(fileName, std::ios::out);
     INFO tmp{};
     file.write(reinterpret_cast<const char *>(&tmp), INFO_LEN);
     int empty = INFO_LEN + INT_SIZE;
