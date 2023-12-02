@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <cstring>
 #include "FileStorage.hpp"
-#include <iostream>
 
 template<class T, int BLOCK_SIZE>
 struct Block {
@@ -22,25 +21,23 @@ struct Block {
     return size >= BLOCK_SIZE;
   }
 
-  void insert(T t) {
+  bool insert(T t) {
     if (full()) {
-      std::cerr << "Block full\n";
-      return;
+      return false;
     }
     int p = std::lower_bound(data, data + size, t) - data;
     if (p < size && !(data[p] < t) && !(t < data[p])) {
-//      std::cout << "Already exists\n";
-      return;
+      return false;
     }
     std::memmove(data + p + 1, data + p, (size - p) * sizeof(T));
     data[p] = t;
     size++;
+    return true;
   }
 
   bool erase(T t) {
     int p = std::lower_bound(data, data + size, t) - data;
-    if (p < size && (data[p] < t || t < data[p])) {
-//      std::cout << "Not found\n";
+    if (p >= size || (data[p] < t || t < data[p])) {
       return false;
     }
     std::memmove(data + p, data + p + 1, (size - p) * sizeof(T));
@@ -78,7 +75,9 @@ struct Block {
   }
 };
 
-template<class T, int SIZE>
+template<class T, int SIZE> //SIZE is the max size of indexBlock and currentBlock
+//TODO: maintain the size of each block more properly to optimize time and space usage
+//TODO: wrap as a multimap
 class BlockedList {
   //behave like std::set
   struct Index {
@@ -105,37 +104,40 @@ public:
     storage.setInfo(indexBlock);
   }
 
-  void insert(const T &t) {
-    if (indexBlock.empty()) {
+  bool insert(const T &t) {
+    if (indexBlock.empty()) { //init
       currentBlock = {1, {t}};
       indexBlock.insert({t, storage.add(currentBlock)});
-      return;
+      return true;
     }
-    int indexId = indexBlock.getLastNoGreater({t, 0});
-    Index &index = indexBlock.data[std::max(0, indexId)]; //just for cmp. pos is useless
+    int indexId = indexBlock.getLastNoGreater({t, 0}); //just for cmp. pos is useless
+    Index &index = indexBlock.data[std::max(0, indexId)];
     currentBlock = storage.get(index.pos);
-    currentBlock.insert(t);
+    if(!currentBlock.insert(t)) {
+      return false;
+    }
     storage.set(currentBlock, index.pos);
     index.min = currentBlock.min();
-    if (currentBlock.full()) {
-      Block<T, SIZE> newBlock = currentBlock.split();
+    if (currentBlock.full()) { //split
+      auto newBlock = currentBlock.split();
       storage.set(currentBlock, index.pos); //overwrite as currentBlock has changed
       indexBlock.insert({newBlock.min(), storage.add(newBlock)});
     }
+    return true;
   }
 
   bool erase(const T &t) {
     if (indexBlock.empty()) {
       return false;
     }
-    int indexId = indexBlock.getLastNoGreater({t, 0});
+    int indexId = indexBlock.getLastNoGreater({t, 0}); //just for cmp. pos is useless
     if(indexId < 0) {
       return false;
     }
-    Index &index = indexBlock.data[indexId]; //just for cmp. pos is useless
+    Index &index = indexBlock.data[indexId];
     currentBlock = storage.get(index.pos);
     if (currentBlock.erase(t)) {
-      if (currentBlock.empty()) {
+      if (currentBlock.empty()) { //I think delete when empty is the best, as you needn't concern about merging
         storage.remove(index.pos);
         indexBlock.erase(index);
       } else {
@@ -150,7 +152,7 @@ public:
   std::vector<T> search(const T &min, const T &max) {
     std::vector<T> ret;
     T tmp;
-    int startIndexGlobal = std::max(0, indexBlock.getLastNoGreater({min, 0}));
+    int startIndexGlobal = std::max(0, indexBlock.getLastNoGreater({min, 0})); //just for cmp. pos is useless
     currentBlock = storage.get(indexBlock.data[startIndexGlobal].pos);
     int startIndexLocal = currentBlock.getFirstNoSmaller(min);
     for(int i=startIndexLocal; i<currentBlock.size; i++) {

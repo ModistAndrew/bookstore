@@ -11,6 +11,7 @@ using std::ifstream;
 using std::ofstream;
 
 template<class T, class INFO>
+//a simple file storage class without cache
 class FileStorage {
 private:
   fstream file;
@@ -68,9 +69,7 @@ public:
     file.write(reinterpret_cast<const char *>(&info), INFO_LEN);
   }
 
-  //在文件合适位置写入类对象t，并返回写入的位置索引index
-  //位置索引意味着当输入正确的位置索引index，在以下三个函数中都能顺利的找到目标对象进行操作
-  //位置索引index可以取为对象写入的起始位置
+  //find an empty place to add T and return the index of the object
   int add(const T &t) {
     int index = getEmpty();
     file.seekg(index);
@@ -87,13 +86,15 @@ public:
     return index;
   }
 
-  //用t的值更新位置索引index对应的对象，保证调用的index都是由write函数产生
+  //make sure the index is valid
+  //update the object at index
   void set(T &t, int index) {
     file.seekp(index);
     file.write(reinterpret_cast<const char *>(&t), T_SIZE);
   }
 
-  //读出位置索引index对应的T对象的值并赋值给t，保证调用的index都是由write函数产生
+  //make sure the index is valid
+  //return the object at index
   T get(int index) {
     file.seekg(index);
     T ret;
@@ -101,8 +102,9 @@ public:
     return ret;
   }
 
-  //删除位置索引index对应的对象(不涉及空间回收时，可忽略此函数)，保证调用的index都是由write函数产生
-  //you should never remove twice!
+  //make sure the index is valid
+  //delete a currently occupied index
+  //you should never remove an empty index!
   void remove(int index) {
     int nxt = getEmpty();
     setEmpty(index);
