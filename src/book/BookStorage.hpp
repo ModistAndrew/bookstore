@@ -1,0 +1,8 @@
+//
+// Created by zjx on 2023/12/6.
+//
+
+#ifndef BOOKSTORE_BOOKSTORAGE_HPP
+#define BOOKSTORE_BOOKSTORAGE_HPP
+
+#endif //BOOKSTORE_BOOKSTORAGE_HPP
