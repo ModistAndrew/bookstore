@@ -99,34 +99,27 @@ namespace Commands {
       }
     };
 
-    const std::string VISIBLE = R"([\x20-\x7E])";
-    const std::string AZ = "[a-zA-Z0-9_]";
-    const std::string DIGIT = "[0-9]";
-    const std::string DIGIT_DOT = "[0-9.]";
-    const std::string NO_QUOTIENT = R"([\x20-\x21\x23-\x7E])";
-
-    std::regex merge(const std::string &c, int len) {
-      return std::regex("^" + c + "{1," + std::to_string(len) + "}$");
-    }
-
-    const Scanner USER_ID = Scanner<String30>(merge(AZ, 30));
-    const Scanner PASSWORD = Scanner<String30>(merge(AZ, 30));
-    const Scanner USER_NAME = Scanner<String30>(merge(VISIBLE, 30));
-    const Scanner PRIVILEGE = Scanner<Privilege>(std::regex("^[0137]$"));
-    const Scanner ISBN = Scanner<String20>(merge(VISIBLE, 20));
-    const Scanner BOOK_NAME = Scanner<String60>(merge(NO_QUOTIENT, 60));
-    const Scanner AUTHOR = Scanner<String60>(merge(NO_QUOTIENT, 60));
-    const Scanner KEYWORD = Scanner<String60>(merge(NO_QUOTIENT, 60));
-    const Scanner COUNT = Scanner<int>(merge(DIGIT, 10));
-    const Scanner PRICE = Scanner<double>(merge(DIGIT_DOT, 13));
-
-//    const Scanner BOOK_DATA = Scanner<BookData>([](const std::string &s) -> BookData {
-//      std::stringstream ss(s);
-//      std::string name, value;
-//      std::getline(ss, name, '=');
-//      ss >> value;
-//      return parse(name, value);
-//    });
+    const Scanner USER_ID = Scanner<String30>(USER_ID_PATTERN);
+    const Scanner PASSWORD = Scanner<String30>(PASSWORD_PATTERN);
+    const Scanner USER_NAME = Scanner<String30>(USER_NAME_PATTERN);
+    const Scanner PRIVILEGE = Scanner<Privilege>(PRIVILEGE_PATTERN);
+    const Scanner ISBN = Scanner<String20>(ISBN_PATTERN);
+    const Scanner COUNT = Scanner<int>(COUNT_PATTERN);
+    const Scanner PRICE = Scanner<double>(PRICE_PATTERN);
+    const Scanner BOOK_DATA_SEARCH = Scanner<BookDataSearch>([](const std::string &s) -> BookDataSearch {
+      std::stringstream ss(s);
+      std::string name, value;
+      std::getline(ss, name, '=');
+      ss >> value;
+      return parseSearch(name, value);
+    });
+    const Scanner BOOK_DATA_MODIFY = Scanner<BookDataModify>([](const std::string &s) -> BookDataModify {
+      std::stringstream ss(s);
+      std::string name, value;
+      std::getline(ss, name, '=');
+      ss >> value;
+      return parseModify(name, value);
+    });
     Account checkAccount() {
       Account account = Accounts::get(USER_ID.eval());
       if (account.empty()) {

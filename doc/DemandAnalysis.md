@@ -2,7 +2,7 @@
 ## Control System
 - receive input from command line or GUI
 - check whether the input is valid and whether the user has permission
-- interact with data and provide output
+- interact with value and provide output
 ## Account System
 - maintain account information
 - provide interface to log in, register, change password
@@ -14,6 +14,6 @@
 - maintain log information, including time and income/outcome
 - provide interface to check log by time
 ## Database
-- maintain data, caching them or storing them in files
-- provide interface to access data as std::set and search in a range
+- maintain value, caching them or storing them in files
+- provide interface to access value as std::set and search in a range
 ## ![](picture/graph.png)

@@ -2,7 +2,7 @@
 ## Control System
 - receive input from command line or GUI
 - check whether the input is valid and whether the user has permission
-- interact with data and provide output
+- interact with value and provide output
 ## Account System
 - maintain account information
 - provide interface to log in, register, change password
