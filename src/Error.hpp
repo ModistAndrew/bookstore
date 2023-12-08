@@ -14,7 +14,7 @@
  *<pre>
  *    try {
  *       ... code in which an error might occur ...
- *    } catch (ErrorException & ex) {
+ *    }, catch (ErrorException & ex) {
  *       ... code to handle the error condition ...
  *    }
  *</pre>
@@ -24,9 +24,9 @@
  * that code), control will jump immediately to the error handler.
  */
 
-class ErrorException : public std::exception {
+class Error : public std::exception {
 public:
-  explicit ErrorException(std::string message) : message(std::move(message)) {
+  explicit Error(std::string message) : message(std::move(message)) {
   }
 
   [[nodiscard]] std::string getMessage() const {
@@ -36,11 +36,14 @@ public:
 private:
   std::string message;
 };
-
-//------------------------------------------------------------------------------------------------
-
-void error(const std::string &message) {
-  throw ErrorException(message);
-}
-
+class SyntaxError : public Error {
+public:
+  explicit SyntaxError() : Error("Syntax error") {
+  }
+};
+class PermissionDenied : public Error {
+public:
+  explicit PermissionDenied() : Error("Permission denied") {
+  }
+};
 #endif //CODE_ERROR_HPP

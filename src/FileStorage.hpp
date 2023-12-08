@@ -35,7 +35,7 @@ private:
   //empty except end has pointer to next empty; check EOF to determine whether at end. (so don't store anything after this)
 public:
   FileStorage(FileStorage &&)  noexcept = default;
-  explicit FileStorage(const string &file_name) : fileName(file_name+".dat") {
+  explicit FileStorage(const string &file_name) : fileName("storage/"+file_name+".dat") {
     init();
     file.open(fileName, std::ios::in | std::ios::out);
   }
@@ -48,6 +48,7 @@ public:
     if (std::filesystem::exists(fileName)) {
       return;
     }
+    std::filesystem::create_directory("storage");
     file.open(fileName, std::ios::out);
     INFO tmp{};
     file.write(reinterpret_cast<const char *>(&tmp), INFO_LEN);

@@ -16,15 +16,21 @@ class FixedString { // Fixed length string with max length L
 public:
   explicit FixedString(const std::string &s) : key{} {
     if (s.length() > L) {
-      error("String too long, this should never happen!");
+      throw Error("String too long, this should never happen!");
     }
     strncpy(key, s.c_str(), L);
   }
 
   FixedString() = default;
 
-  bool operator<(const FixedString &rhs) const {
-    return strncmp(key, rhs.key, L) < 0;
+  auto operator<=>(const FixedString &rhs) const {
+    int result = std::strncmp(key, rhs.key, L);
+    return result < 0 ? std::strong_ordering::less :
+    result > 0 ? std::strong_ordering::greater : std::strong_ordering::equal;
+  }
+
+  bool operator==(const FixedString &rhs) const {
+    return std::strncmp(key, rhs.key, L) == 0;
   }
 
   static FixedString min() {
@@ -52,13 +58,17 @@ enum BookDataID {
   ISBN, NAME, AUTHOR, KEYWORD, PRICE, STOCK
 };
 
+enum Privilege {
+  GUEST = 0, CUSTOMER = 1, CLERK = 3, ADMIN = 7
+};
+
 template<typename T, BookDataID ID>
 struct BookDataType {
   T data;
-  bool operator<(const BookDataType &rhs) const {
-    return data < rhs.data;
-  }
+  auto operator<=>(const BookDataType &rhs) const = default;
+  bool operator==(const BookDataType &rhs) const = default;
 };
+
 typedef BookDataType<String20, ISBN> ISBNType;
 typedef BookDataType<String60, NAME> NameType;
 typedef BookDataType<String60, AUTHOR> AuthorType;
@@ -70,22 +80,52 @@ typedef std::variant<
   ISBNType,
   NameType,
   AuthorType,
-  KeywordType> BookData;
+  KeywordType> BookDataSearch;
+typedef std::variant<
+  ISBNType,
+  NameType,
+  AuthorType,
+  KeywordType,
+  PriceType> BookDataModify;
+typedef std::variant<
+  ISBNType,
+  NameType,
+  AuthorType,
+  KeywordType,
+  PriceType,
+  StockType> BookDataFull;
 
-BookData parse(const std::string& name, const std::string& value) {
-  if(name == "ISBN") {
+BookDataSearch parseSearch(const std::string &name, const std::string &value) {
+  if (name == "ISBN") {
     return ISBNType{String20(value)};
   }
-  if(name == "name") {
+  if (name == "name") {
     return NameType{String60(value)};
   }
-  if(name == "author") {
+  if (name == "author") {
     return AuthorType{String60(value)};
   }
-  if(name == "keyword") {
+  if (name == "keyword") {
     return KeywordType{String60(value)};
   }
-  error("Invalid book data name");
+  throw Error("Invalid book data name");
 }
-
+BookDataModify parseModify(const std::string &name, const std::string &value) {
+  if (name == "ISBN") {
+    return ISBNType{String20(value)};
+  }
+  if (name == "name") {
+    return NameType{String60(value)};
+  }
+  if (name == "author") {
+    return AuthorType{String60(value)};
+  }
+  if (name == "keyword") {
+    return KeywordType{String60(value)};
+  }
+  if (name == "price") {
+    return PriceType{std::stod(value)};
+  }
+  throw Error("Invalid book data name");
+}
 #endif //BOOKSTORE_DATA_TYPES_HPP

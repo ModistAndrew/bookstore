@@ -27,7 +27,7 @@ struct Block {
       return false;
     }
     int p = std::lower_bound(data, data + size, t) - data;
-    if (p < size && !(data[p] < t) && !(t < data[p])) {
+    if (p < size && data[p] == t) { //first check if already exists, use p < size to avoid overflow
       return false;
     }
     std::memmove(data + p + 1, data + p, (size - p) * sizeof(T));
@@ -38,7 +38,7 @@ struct Block {
 
   bool erase(T t) {
     int p = std::lower_bound(data, data + size, t) - data;
-    if (p >= size || (data[p] < t || t < data[p])) {
+    if (p >= size || data[p] != t) {
       return false;
     }
     std::memmove(data + p, data + p + 1, (size - p) * sizeof(T));
@@ -84,9 +84,13 @@ class PersistentSet {
     T min;
     int pos;
 
-    bool operator<(const Index &rhs) const {
-      return min < rhs.min;
-    }
+    auto operator<=>(const Index &other) const {
+      return min <=> other.min;
+    };
+
+    bool operator==(const Index &other) const {
+      return min == other.min;
+    };
   };
 
   Block<Index, SIZE> indexBlock; //can be cached and stored when destructed
@@ -151,6 +155,9 @@ public:
 
   std::vector<T> search(const T &min, const T &max) {
     std::vector<T> ret;
+    if (indexBlock.empty()) {
+      return ret;
+    }
     T tmp;
     int startIndexGlobal = std::max(0, indexBlock.getLastNoGreater({min, 0})); //just for cmp. pos is useless
     currentBlock = storage.get(indexBlock.data[startIndexGlobal].pos);
@@ -193,7 +200,8 @@ public:
     return vec.empty() && this->insert(std::make_pair(k, v));
   }
 
-  bool remove(const KEY &k, const VALUE &v = VALUE::MIN) { //return true if remove successfully. you should specify v if multi is true
+  bool remove(const KEY &k,
+              const VALUE &v = VALUE::MIN) { //return true if remove successfully. you should specify v if multi is true
     if (multi) {
       return this->erase(std::make_pair(k, v));
     }
@@ -201,7 +209,8 @@ public:
     return !vec.empty() && this->erase(vec[0]);
   }
 
-  VALUE get(const KEY &k) { //return the value of the key. if multi is true, return the first one. return MIN if not found
+  VALUE
+  get(const KEY &k) { //return the value of the key. if multi is true, return the first one. return MIN if not found
     auto vec = this->search(std::make_pair(k, VALUE::MIN), std::make_pair(k, VALUE::MAX));
     if (vec.empty()) {
       return VALUE::MIN;

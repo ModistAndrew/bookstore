@@ -8,14 +8,18 @@
 #include "DataTypes.hpp"
 #include "PersistentSet.hpp"
 
-struct Account { //may throw error
+struct Account {
   String30 userID;
   String30 password;
   String30 userName;
-  int privilege;
+  Privilege privilege;
 
-  bool operator<(const Account &rhs) const {
-    return userID < rhs.userID;
+  auto operator<=>(const Account &rhs) const {
+    return userID <=> rhs.userID;
+  }
+
+  bool operator==(const Account &rhs) const {
+    return userID == rhs.userID;
   }
 
   static const Account MIN;
@@ -56,7 +60,7 @@ namespace Accounts {
   }
 
   void init() {
-    add(Account{String30{"root"}, String30{"sjtu"}, String30{"root"}, 7});
+    add(Account{String30{"root"}, String30{"sjtu"}, String30{"root"}, ADMIN}); //try to store root if not exists
   }
 }
 #endif //BOOKSTORE_ACCOUNT_HPP

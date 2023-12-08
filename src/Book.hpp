@@ -2,14 +2,14 @@
 // Created by zjx on 2023/12/6.
 //
 
-#ifndef BOOKSTORE_BOOKSTORAGE_HPP
-#define BOOKSTORE_BOOKSTORAGE_HPP
+#ifndef BOOKSTORE_BOOK_HPP
+#define BOOKSTORE_BOOK_HPP
 
 #include "Error.hpp"
 #include "DataTypes.hpp"
 #include "PersistentSet.hpp"
 
-struct Book { //may throw error
+struct Book {
   String20 isbn;
   String60 name;
   String60 author;
@@ -17,8 +17,12 @@ struct Book { //may throw error
   double price;
   int stock;
 
-  bool operator<(const Book &rhs) const {
-    return isbn < rhs.isbn;
+  auto operator<=>(const Book &rhs) const {
+    return isbn <=> rhs.isbn;
+  }
+
+  bool operator==(const Book &rhs) const {
+    return isbn == rhs.isbn;
   }
 
   static const Book MIN;
@@ -35,29 +39,23 @@ namespace Books {
       BookMap<NameType>,
       BookMap<AuthorType>,
       BookMap<KeywordType>> bookMaps = std::make_tuple(BookMap<ISBNType>(false, "isbn"),
-                                    BookMap<NameType>(true, "name"),
-                                    BookMap<AuthorType>(true, "author"),
-                                    BookMap<KeywordType>(true, "keyword"));
+                                                       BookMap<NameType>(true, "name"),
+                                                       BookMap<AuthorType>(true, "author"),
+                                                       BookMap<KeywordType>(true, "keyword"));
     Book currentBook;
-    class Visitor {
-    public:
-      template<typename T>
-      void operator()(const T &data) {
-        std::get<BookMap<T>>(bookMaps).iterate(data, [](const Book &book) {
-          std::cout << book << '\n';
-        }
-      }
-    };
   }
 
-  void search(BookData data) {
-    std::visit(Visitor(), data);
+  void search(const BookDataSearch &data) {
+    std::visit([]<typename T>(const T &datum) -> void {
+      std::get<BookMap<T>>(bookMaps).iterate(datum, [](const Book &book) {
+      });
+    }, data);
   }
 
   Book get(const String20 &isbn);
 
-  bool modify(const String20 &isbn, const BookData data);
+  bool modify(const String20 &isbn, const BookDataModify &data);
 
   bool remove(const String20 &isbn);
 }
-#endif //BOOKSTORE_BOOKSTORAGE_HPP
+#endif //BOOKSTORE_BOOK_HPP

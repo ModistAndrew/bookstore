@@ -1,11 +1,15 @@
-#include <iostream>
-#include <sstream>
-#include <string>
+#include "Command.hpp"
+
 int main() {
-  std::string s("11111ade==awef===aewfaef");
-  std::stringstream ss(s);
-  std::string a, b;
-  std::getline(ss, a, '=');
-  ss >> b;
-  return 0;
+  Accounts::init();
+  Commands::init();
+  while (true) {
+    try {
+      std::string input;
+      getline(std::cin, input);
+      Commands::run(input);
+    } catch (Error &ex) {
+      std::cout << ex.getMessage() << std::endl;
+    }
+  }
 }
