@@ -1,5 +1,5 @@
-#ifndef BPT_MEMORYRIVER_HPP
-#define BPT_MEMORYRIVER_HPP
+#ifndef BPT_FILE_STORAGE_HPP
+#define BPT_FILE_STORAGE_HPP
 
 #include <fstream>
 #include <iostream>
@@ -34,11 +34,10 @@ private:
   //store pointer to first empty just after info len.
   //empty except end has pointer to next empty; check EOF to determine whether at end. (so don't store anything after this)
 public:
-  FileStorage() = default;
-
-  FileStorage(const string &file_name) : fileName(file_name) {
+  FileStorage(FileStorage &&)  noexcept = default;
+  explicit FileStorage(const string &file_name) : fileName(file_name+".dat") {
     init();
-    file.open(file_name, std::ios::in | std::ios::out);
+    file.open(fileName, std::ios::in | std::ios::out);
   }
 
   ~FileStorage() {
@@ -111,34 +110,7 @@ public:
     file.seekp(index);
     file.write(reinterpret_cast<const char *>(&nxt), INT_SIZE);
   }
-
-  void print() {
-    puts("info");
-    INFO tmp = getInfo();
-    std::cout << tmp << " ";
-    puts("");
-    puts("last");
-    std::cout << getEmpty() << '\n';
-    puts("");
-    puts("content");
-    file.tellg(); //why I have to call it again?
-    while (file.peek() != EOF) {
-      T *tmp;
-      file.read(reinterpret_cast<char *>(tmp), T_SIZE);
-      int *begin = reinterpret_cast<int *>(tmp);
-      std::cout << *begin << '\n';
-      std::cout << *tmp << '\n';
-    }
-    file.clear();
-    int start = getEmpty();
-    puts("chain");
-    while (file.peek() != EOF) {
-      file.seekg(start);
-      std::cout << start << '\n';
-      file.read(reinterpret_cast<char *>(&start), INT_SIZE);
-    }
-  }
 };
 
 
-#endif //BPT_MEMORYRIVER_HPP
+#endif //BPT_FILE_STORAGE_HPP

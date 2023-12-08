@@ -2,22 +2,23 @@
 // Created by zjx on 2023/11/30.
 //
 
-#ifndef BOOKSTORE_BLOCKEDLIST_HPP
-#define BOOKSTORE_BLOCKEDLIST_HPP
+#ifndef BOOKSTORE_PERSISTENT_SET_HPP
+#define BOOKSTORE_PERSISTENT_SET_HPP
 
 #include <algorithm>
 #include <cstring>
+#include "Error.hpp"
 #include "FileStorage.hpp"
 
 template<class T, int BLOCK_SIZE>
 struct Block {
   int size;
   T data[BLOCK_SIZE]; //sorted
-  bool empty() const {
+  [[nodiscard]] bool empty() const {
     return size <= 0;
   }
 
-  bool full() const {
+  [[nodiscard]] bool full() const {
     return size >= BLOCK_SIZE;
   }
 
@@ -77,8 +78,7 @@ struct Block {
 
 template<class T, int SIZE> //SIZE is the max size of indexBlock and currentBlock
 //TODO: maintain the size of each block more properly to optimize time and space usage
-//TODO: wrap as a multimap
-class BlockedList {
+class PersistentSet {
   //behave like std::set
   struct Index {
     T min;
@@ -94,13 +94,13 @@ class BlockedList {
   FileStorage<decltype(currentBlock), decltype(indexBlock)> storage;
 
 public:
-  BlockedList() = default;
-
-  BlockedList(const string &file_name) : storage(file_name) {
+  explicit PersistentSet(const string &file_name) : storage(file_name) {
     indexBlock = storage.getInfo();
   }
 
-  ~BlockedList() {
+  PersistentSet(PersistentSet &&) = default;
+
+  ~PersistentSet() {
     storage.setInfo(indexBlock);
   }
 
@@ -113,7 +113,7 @@ public:
     int indexId = indexBlock.getLastNoGreater({t, 0}); //just for cmp. pos is useless
     Index &index = indexBlock.data[std::max(0, indexId)];
     currentBlock = storage.get(index.pos);
-    if(!currentBlock.insert(t)) {
+    if (!currentBlock.insert(t)) {
       return false;
     }
     storage.set(currentBlock, index.pos);
@@ -131,7 +131,7 @@ public:
       return false;
     }
     int indexId = indexBlock.getLastNoGreater({t, 0}); //just for cmp. pos is useless
-    if(indexId < 0) {
+    if (indexId < 0) {
       return false;
     }
     Index &index = indexBlock.data[indexId];
@@ -155,18 +155,18 @@ public:
     int startIndexGlobal = std::max(0, indexBlock.getLastNoGreater({min, 0})); //just for cmp. pos is useless
     currentBlock = storage.get(indexBlock.data[startIndexGlobal].pos);
     int startIndexLocal = currentBlock.getFirstNoSmaller(min);
-    for(int i=startIndexLocal; i<currentBlock.size; i++) {
+    for (int i = startIndexLocal; i < currentBlock.size; i++) {
       tmp = currentBlock.data[i];
-      if(max < tmp) {
+      if (max < tmp) {
         return ret;
       }
       ret.push_back(tmp);
     } //first eat the current block
-    for(int i=startIndexGlobal+1; i<indexBlock.size; i++) {
+    for (int i = startIndexGlobal + 1; i < indexBlock.size; i++) {
       currentBlock = storage.get(indexBlock.data[i].pos);
-      for(int j=0; j<currentBlock.size; j++) {
+      for (int j = 0; j < currentBlock.size; j++) {
         tmp = currentBlock.data[j];
-        if(max < tmp) {
+        if (max < tmp) {
           return ret;
         }
         ret.push_back(tmp);
@@ -176,4 +176,44 @@ public:
   }
 };
 
-#endif //BOOKSTORE_BLOCKEDLIST_HPP
+template<class KEY, class VALUE, int SIZE>
+class PersistentMap : public PersistentSet<std::pair<KEY, VALUE>, SIZE> {
+  const bool multi;
+public:
+  explicit PersistentMap(bool multi, const string &file_name) : multi(multi),
+                                                                PersistentSet<std::pair<KEY, VALUE>, SIZE>(file_name) {}
+
+  PersistentMap(PersistentMap &&) = default;
+
+  bool put(const KEY &k, const VALUE &v) { //return true if put successfully
+    if (multi) {
+      return this->insert(std::make_pair(k, v));
+    }
+    auto vec = this->search(std::make_pair(k, VALUE::MIN), std::make_pair(k, VALUE::MAX));
+    return vec.empty() && this->insert(std::make_pair(k, v));
+  }
+
+  bool remove(const KEY &k, const VALUE &v = VALUE::MIN) { //return true if remove successfully. you should specify v if multi is true
+    if (multi) {
+      return this->erase(std::make_pair(k, v));
+    }
+    auto vec = this->search(std::make_pair(k, VALUE::MIN), std::make_pair(k, VALUE::MAX));
+    return !vec.empty() && this->erase(vec[0]);
+  }
+
+  VALUE get(const KEY &k) { //return the value of the key. if multi is true, return the first one. return MIN if not found
+    auto vec = this->search(std::make_pair(k, VALUE::MIN), std::make_pair(k, VALUE::MAX));
+    if (vec.empty()) {
+      return VALUE::MIN;
+    }
+    return vec[0].second;
+  }
+
+  void iterate(const KEY &k, std::function<void(VALUE)> f) { //iterate all values of the key
+    for (const std::pair<KEY, VALUE> &p: this->search(std::make_pair(k, VALUE::MIN), std::make_pair(k, VALUE::MAX))) {
+      f(p.second);
+    }
+  }
+};
+
+#endif //BOOKSTORE_PERSISTENT_SET_HPP

@@ -1,3 +1,4 @@
 [submodule "Bookstore-2023"]
 	path = Bookstore-2023
 	url = https://github.com/ACMClassCourse-2023/Bookstore-2023
+	update = merge

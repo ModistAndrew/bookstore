@@ -1,5 +1,5 @@
 #include <set>
-#include "../src/database/BlockedList.hpp"
+#include "../src/PersistentSet.hpp"
 int N;
 
 struct Node {
@@ -25,7 +25,7 @@ Node tmp;
 
 void myAns(){
   int value;
-  BlockedList<Node, 500> test("test1.txt");
+  PersistentSet<Node, 500> test("test1.txt");
   std::cin >> N;
   std::string s;
   for (int i = 1; i <= N; i++) {

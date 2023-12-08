@@ -3,6 +3,7 @@
 
 #include <string>
 #include <exception>
+#include <utility>
 
 /*
  * Class: ErrorException
@@ -25,15 +26,21 @@
 
 class ErrorException : public std::exception {
 public:
-    explicit ErrorException(std::string message);
+  explicit ErrorException(std::string message) : message(std::move(message)) {
+  }
 
-    std::string getMessage() const;
+  [[nodiscard]] std::string getMessage() const {
+    return message;
+  }
 
 private:
-    std::string message;
+  std::string message;
 };
 
 //------------------------------------------------------------------------------------------------
 
-void error(std::string message);
+void error(const std::string &message) {
+  throw ErrorException(message);
+}
+
 #endif //CODE_ERROR_HPP

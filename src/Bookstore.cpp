@@ -1,9 +1,11 @@
-//
-// Created by zjx on 2023/12/3.
-
-#include "../test/test.cpp"
-
+#include <iostream>
+#include <sstream>
+#include <string>
 int main() {
-  myAns();
+  std::string s("11111ade==awef===aewfaef");
+  std::stringstream ss(s);
+  std::string a, b;
+  std::getline(ss, a, '=');
+  ss >> b;
   return 0;
 }
