@@ -10,79 +10,57 @@
 #include <regex>
 #include <functional>
 #include <optional>
+#include <utility>
 #include "Error.hpp"
-#include "DataTypes.hpp"
+#include "Utils.hpp"
 #include "Account.hpp"
 #include "Status.hpp"
 
 namespace Commands {
   namespace {
     std::stringstream currentCommand;
-    std::map<std::string, std::pair<Privilege, std::function<void()>>> commands;
+    struct Command {
+      std::string name;
+      Privilege minPrivilege = GUEST;
+      std::function<void()> runnable;
+    };
+
+    std::map<std::string, Command> commands;
 
     void addCommand(const std::string &name, Privilege minPrivilege, const std::function<void()> &func) {
-      commands[name] = std::make_pair(minPrivilege, func);
-    }
-
-    template<typename T>
-    T fromString(const std::string &s) {
-      return T(s);
-    }
-
-    template<>
-    int fromString(const std::string &s) {
-      return stoi(s);
-    }
-
-    template<>
-    double fromString(const std::string &s) {
-      return stod(s);
-    }
-
-    template<>
-    Privilege fromString(const std::string &s) {
-      switch (stoi(s)) {
-        case 0:
-          return GUEST;
-        case 1:
-          return CUSTOMER;
-        case 3:
-          return CLERK;
-        case 7:
-          return ADMIN;
-        default:
-          throw Error("Invalid privilege");
-      }
+      commands[name] = {name, minPrivilege, func};
     }
 
     template<typename T>
     class Scanner {
-      std::function<T(const std::string &)> func; //try to cast the string to T. may throw error
+    protected:
+      std::function<T(const std::string &)> toT; //try to cast the string to T. may throw error
     public:
-      explicit Scanner(std::function<T(const std::string &)> func) : func(func) {}
+      explicit Scanner(std::function<T(const std::string &)> func) : toT(std::move(func)) {}
 
-      explicit Scanner(const std::regex &pattern) : func([pattern](const std::string &s) -> T {
-        if (!std::regex_match(s, pattern)) {
+      explicit Scanner(const std::regex &pattern) : toT([pattern](const std::string &s) -> T {
+        std::smatch match;
+        if (!std::regex_match(s, match, pattern)) {
           throw SyntaxError();
         }
-        return fromString<T>(s);
+        return fromString<T>(match[1]);
       }) {}
 
-      [[nodiscard]] T eval() const {
+      [[nodiscard]] virtual T eval() const {
         std::string s;
         currentCommand >> s;
         if (s.empty()) {
           throw SyntaxError();
         }
-        return func(s);
+        return toT(s);
       }
 
       [[nodiscard]] std::vector<T> evalAll() const {
         std::vector<T> ret;
         std::string s;
-        while(currentCommand >> s) {
-          if(!s.empty()) {
-            ret.emplace_back(func(s));
+        while (currentCommand >> s) {
+          if (!s.empty()) {
+            ret.emplace_back(toT(s));
           }
         }
         return ret;
@@ -93,9 +71,23 @@ namespace Commands {
         std::string s;
         currentCommand >> s;
         if (!s.empty()) {
-          ret.emplace(func(s));
+          ret.emplace(toT(s));
         }
         return ret;
+      }
+    };
+
+    template<typename T>
+    class ArgScanner : public Scanner<T> {
+    public:
+      explicit ArgScanner(const std::regex &pattern) : Scanner<T>(pattern) {}
+      [[nodiscard]] T eval() const override {
+        std::string s;
+        std::getline(currentCommand, s, '=');
+        if (s.empty()) {
+          throw SyntaxError();
+        }
+        return this->toT(s);
       }
     };
 
@@ -104,22 +96,14 @@ namespace Commands {
     const Scanner USER_NAME = Scanner<String30>(USER_NAME_PATTERN);
     const Scanner PRIVILEGE = Scanner<Privilege>(PRIVILEGE_PATTERN);
     const Scanner ISBN = Scanner<String20>(ISBN_PATTERN);
+    const Scanner NAME = Scanner<String60>(NAME_PATTERN);
+    const Scanner AUTHOR = Scanner<String60>(AUTHOR_PATTERN);
+    const Scanner KEYWORD = Scanner<String60>(KEYWORD_PATTERN);
     const Scanner COUNT = Scanner<int>(COUNT_PATTERN);
     const Scanner PRICE = Scanner<double>(PRICE_PATTERN);
-    const Scanner BOOK_DATA_SEARCH = Scanner<BookDataSearch>([](const std::string &s) -> BookDataSearch {
-      std::stringstream ss(s);
-      std::string name, value;
-      std::getline(ss, name, '=');
-      ss >> value;
-      return parseSearch(name, value);
-    });
-    const Scanner BOOK_DATA_MODIFY = Scanner<BookDataModify>([](const std::string &s) -> BookDataModify {
-      std::stringstream ss(s);
-      std::string name, value;
-      std::getline(ss, name, '=');
-      ss >> value;
-      return parseModify(name, value);
-    });
+    const ArgScanner BOOK_DATA_SEARCH = ArgScanner<BookDataSearchID>(BOOK_DATA_SEARCH_PATTERN);
+    const ArgScanner BOOK_DATA_MODIFY = ArgScanner<BookDataModifyID>(BOOK_DATA_MODIFY_PATTERN);
+
     Account checkAccount() {
       Account account = Accounts::get(USER_ID.eval());
       if (account.empty()) {
@@ -211,6 +195,10 @@ namespace Commands {
       }
       Accounts::remove(account.userID);
     });
+    addCommand("show", CUSTOMER, []() {
+      end();
+      std::cout << account.userID << " " << account.userName << " " << account.privilege << std::endl;
+    });
   }
 
   void run(const std::string &command) {
@@ -221,10 +209,10 @@ namespace Commands {
     if (commands.find(name) == commands.end()) {
       throw Error("Invalid command");
     }
-    if (Statuses::currentPrivilege() < commands[name].first) {
+    if (Statuses::currentPrivilege() < commands[name].minPrivilege) {
       throw PermissionDenied();
     }
-    commands[name].second();
+    commands[name].runnable();
   }
 }
 #endif //BOOKSTORE_COMMAND_HPP

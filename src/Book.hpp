@@ -5,102 +5,121 @@
 #ifndef BOOKSTORE_BOOK_HPP
 #define BOOKSTORE_BOOK_HPP
 
-#include "Error.hpp"
-#include "DataTypes.hpp"
+#include "Utils.hpp"
 #include "PersistentSet.hpp"
 
 struct Book {
-  std::tuple<ISBNType,
-    NameType,
-    AuthorType,
-    KeywordType,
-    PriceType,
-    StockType> data;
+  String20 isbn;
+  String60 name;
+  String60 author;
+  String60 keyword;
+  double price;
+  int stock;
 
   auto operator<=>(const Book &rhs) const {
-    return std::get<ISBNType>(data) <=> std::get<ISBNType>(rhs.data);
+    return isbn <=> rhs.isbn;
   }
 
   bool operator==(const Book &rhs) const {
-    return std::get<ISBNType>(data) == std::get<ISBNType>(rhs.data);
+    return isbn == rhs.isbn;
   }
 
   [[nodiscard]] bool empty() const {
-    return std::get<ISBNType>(data).value.empty();
+    return isbn.empty();
   }
+
   static const Book MIN;
   static const Book MAX;
 };
 
 std::ostream &operator<<(std::ostream &out, const Book &b) {
-  return out << std::get<ISBNType>(b.data) << '\t'
-             << std::get<NameType>(b.data) << '\t'
-             << std::get<AuthorType>(b.data) << '\t'
-             << std::get<KeywordType>(b.data) << '\t'
-             << std::get<PriceType>(b.data) << '\t'
-             << std::get<StockType>(b.data);
+  return out << b.isbn << '\t' << b.name << '\t' << b.author << '\t' << b.keyword << '\t' << b.price << '\t' << b.stock;
 }
 
-const Book Book::MIN = Book{{ISBNType(String20::min()),
-                            NameType(),
-                            AuthorType(),
-                            KeywordType(),
-                            PriceType(),
-                            StockType()}};
-const Book Book::MAX = Book{{ISBNType(String20::max()),
-                             NameType(),
-                             AuthorType(),
-                             KeywordType(),
-                             PriceType(),
-                             StockType()}};
+const Book Book::MIN = Book{String20::min()};
+const Book Book::MAX = Book{String20::max()};
 namespace Books {
   namespace {
     template<typename T>
     using BookMap = PersistentMap<T, Book, 100>;
-    std::tuple<BookMap<ISBNType>,
-      BookMap<NameType>,
-      BookMap<AuthorType>,
-      BookMap<KeywordType>> bookMaps = std::make_tuple(BookMap<ISBNType>(false, "isbn"),
-                                                       BookMap<NameType>(true, "name"),
-                                                       BookMap<AuthorType>(true, "author"),
-                                                       BookMap<KeywordType>(true, "keyword"));
-    struct PersistentBook: public Book {
+    BookMap<String20> isbnMap(false, "isbn");
+    BookMap<String60> nameMap(true, "name");
+    BookMap<String60> authorMap(true, "author");
+    BookMap<String60> keywordMap(true, "keyword");
+
+    struct PersistentBook : public Book { //TODO: what if ISBN is modified?
       ~PersistentBook() {
-        if(!empty()) { //store the book into the maps
-          std::get<BookMap<ISBNType>>(bookMaps).put(std::get<ISBNType>(data), *this);
-          std::get<BookMap<NameType>>(bookMaps).put(std::get<NameType>(data), *this);
-          std::get<BookMap<AuthorType>>(bookMaps).put(std::get<AuthorType>(data), *this);
-          std::get<BookMap<KeywordType>>(bookMaps).put(std::get<KeywordType>(data), *this);
+        if (!empty()) { //store the book into the maps
+          isbnMap.put(isbn, *this);
+          nameMap.put(name, *this);
+          authorMap.put(author, *this);
+          keywordMap.put(keyword, *this);
         }
       }
     };
+
     std::optional<PersistentBook> currentBook;
     //every time you emplace it with a new book, the destructor will be called and the old book will be saved
   }
 
-  void search(const BookDataSearch &data) {
-    std::visit([]<typename T>(const T &datum) -> void {
-      std::get<BookMap<T>>(bookMaps).iterate(datum, [](const Book &book) {
-        std::cout << book << std::endl;
-      });
-    }, data);
+  void searchISBN(const String20 &isbn) {
+    isbnMap.iterate(isbn, [](const Book &b) {
+      std::cout << b << std::endl;
+    });
   }
 
-  bool modify(BookDataFull &data) { //TODO: check ISBN
-    if(currentBook.has_value()) {
-      std::visit([]<typename T>(const T &datum) -> void {
-        std::get<T>(currentBook->data) = datum;
-      }, data);
-      return true;
-    }
-    return false;
+  void searchName(const String60 &name) {
+    nameMap.iterate(name, [](const Book &b) {
+      std::cout << b << std::endl;
+    });
   }
 
-  bool select(const ISBNType &isbn) {
-    Book tmp = std::get<BookMap<ISBNType>>(bookMaps).get(isbn);
-    if(tmp.empty()) {
-      return false;
-    }
+  void searchAuthor(const String60 &author) {
+    authorMap.iterate(author, [](const Book &b) {
+      std::cout << b << std::endl;
+    });
+  }
+
+  void searchKeyword(const String60 &keyword) { //TODO: how to split the keyword?
+    keywordMap.iterate(keyword, [](const Book &b) {
+      std::cout << b << std::endl;
+    });
+  }
+
+  void modifyISBN(const String20 &isbn) { //TODO: what if ISBN is modified?
+    currentBook->isbn = isbn;
+  }
+
+  void modifyName(const String60 &name) {
+    currentBook->name = name;
+  }
+
+  void modifyAuthor(const String60 &author) {
+    currentBook->author = author;
+  }
+
+  void modifyKeyword(const String60 &keyword) { //TODO: how to split the keyword?
+    currentBook->keyword = keyword;
+  }
+
+  void modifyPrice(double price) {
+    currentBook->price = price;
+  }
+
+  void modifyStock(int stock) {
+    currentBook->stock = stock;
+  }
+
+  bool present() {
+    return currentBook.has_value();
+  }
+
+  PersistentBook getBook(const String20 &isbn) { //return a book with the given ISBN. You can modify it and it will be stored automatically
+    return PersistentBook(isbnMap.get(isbn));
+  }
+
+  bool select(const String20 &isbn) {
+    PersistentBook tmp = getBook(isbn); //may be empty
     currentBook.emplace(tmp);
     return true;
   }

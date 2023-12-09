@@ -5,7 +5,7 @@
 #define BOOKSTORE_ACCOUNT_HPP
 
 #include "Error.hpp"
-#include "DataTypes.hpp"
+#include "Utils.hpp"
 #include "PersistentSet.hpp"
 
 struct Account {
