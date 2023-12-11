@@ -196,31 +196,55 @@ public:
     if (multi) {
       return this->insert(std::make_pair(k, v));
     }
-    auto vec = this->search(std::make_pair(k, VALUE::MIN), std::make_pair(k, VALUE::MAX));
+    auto vec = this->search(std::make_pair(k, VALUE::min()), std::make_pair(k, VALUE::max()));
     return vec.empty() && this->insert(std::make_pair(k, v));
   }
 
   bool remove(const KEY &k,
-              const VALUE &v = VALUE::MIN) { //return true if remove successfully. you should specify v if multi is true
-    if (multi) {
+              const VALUE &v = VALUE::min()) { //return true if remove successfully. you should specify v if multi is true
+    if (multi && v == VALUE::min()) {
+      throw Error("You should specify v if multi is true");
+    }
+    if (v != VALUE::min()) {
       return this->erase(std::make_pair(k, v));
     }
-    auto vec = this->search(std::make_pair(k, VALUE::MIN), std::make_pair(k, VALUE::MAX));
+    auto vec = this->search(std::make_pair(k, VALUE::min()), std::make_pair(k, VALUE::max()));
     return !vec.empty() && this->erase(vec[0]);
   }
 
   VALUE
-  get(const KEY &k) { //return the value of the key. if multi is true, return the first one. return MIN if not found
-    auto vec = this->search(std::make_pair(k, VALUE::MIN), std::make_pair(k, VALUE::MAX));
+  get(const KEY &k) { //return the value of the key. return min() if not found
+    if (multi) {
+      throw Error("You should use iterate if multi is true");
+    }
+    auto vec = this->search(std::make_pair(k, VALUE::min()), std::make_pair(k, VALUE::max()));
     if (vec.empty()) {
-      return VALUE::MIN;
+      return VALUE::min();
     }
     return vec[0].second;
   }
 
-  void iterate(const KEY &k, std::function<void(VALUE)> f) { //iterate all values of the key
-    for (const std::pair<KEY, VALUE> &p: this->search(std::make_pair(k, VALUE::MIN), std::make_pair(k, VALUE::MAX))) {
-      f(p.second);
+  void iterate(const KEY &k, const std::function<void(const VALUE &)> &f, const std::function<void()> &emptyF = []() {}) { //iterate all values of the key
+    const std::vector<std::pair<KEY, VALUE>> &v = this->search(std::make_pair(k, VALUE::min()),
+                           std::make_pair(k, VALUE::max()));
+    if (v.empty()) {
+      emptyF();
+    } else {
+      for (const std::pair<KEY, VALUE> &p: v) {
+        f(p.second);
+      }
+    }
+  }
+
+  void iterateAll(const KEY &k1, const KEY &k2, const std::function<void(const VALUE &)> &f, const std::function<void()> &emptyF = []() {}) { //iterate all values from k1 to k2
+    const std::vector<std::pair<KEY, VALUE>> &v = this->search(std::make_pair(k1, VALUE::min()),
+                                                               std::make_pair(k2, VALUE::max()));
+    if (v.empty()) {
+      emptyF();
+    } else {
+      for (const std::pair<KEY, VALUE> &p: v) {
+        f(p.second);
+      }
     }
   }
 };

@@ -31,7 +31,7 @@ namespace Statuses {
   }
 
   void login(const Account &account) {
-    statusStack.push({account, Book::MIN});
+    statusStack.push({account, Book::min()});
     loggedAccounts.insert(account.userID);
   }
 

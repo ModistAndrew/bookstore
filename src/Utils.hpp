@@ -9,7 +9,8 @@
 #include <map>
 #include <variant>
 #include "Error.hpp"
-#include "StringUtil.hpp"
+#include <set>
+#include <iostream>
 
 template<int L>
 class FixedString { // Fixed length string with max length L
@@ -19,6 +20,7 @@ public:
     if (s.length() > L) {
       throw Error("String too long, this should never happen!");
     }
+    FixedString &fx = *this;
     strncpy(key, s.c_str(), L);
   }
 
@@ -27,7 +29,7 @@ public:
   auto operator<=>(const FixedString &rhs) const {
     int result = std::strncmp(key, rhs.key, L);
     return result < 0 ? std::strong_ordering::less :
-    result > 0 ? std::strong_ordering::greater : std::strong_ordering::equal;
+           result > 0 ? std::strong_ordering::greater : std::strong_ordering::equal;
   }
 
   bool operator==(const FixedString &rhs) const {
@@ -38,23 +40,31 @@ public:
     return strnlen(key, L);
   }
 
-  [[nodiscard]] char* begin() const {
+  [[nodiscard]] char *begin() const {
     return key;
   }
 
-  [[nodiscard]] char* end() const {
+  [[nodiscard]] char *end() const {
     return key + len();
   }
 
-  friend std::ostream &operator<<(std::ostream &out, const FixedString<L> &rhs);
+  friend std::ostream &operator<<(std::ostream &out, const FixedString &rhs) {
+    for (int i = 0; i < L; i++) {
+      if (rhs.key[i] == '\0') {
+        break;
+      }
+      out << rhs.key[i];
+    }
+    return out;
+  }
 
-  static FixedString min() {
+  static constexpr FixedString min() {
     FixedString ret;
     memset(ret.key, 0, sizeof(ret.key));
     return ret;
   }
 
-  static FixedString max() {
+  static constexpr FixedString max() {
     FixedString ret;
     memset(ret.key, 0xFF, sizeof(ret.key));
     return ret;
@@ -63,17 +73,37 @@ public:
   [[nodiscard]] bool empty() const {
     return key[0] == '\0';
   }
-};
-template<int L>
-std::ostream &operator<<(std::ostream &out, const FixedString<L> &rhs) {
-  for(int i = 0; i < L; i++) {
-    if(rhs.key[i]=='\0') {
-      break;
+
+  std::set<FixedString> split() const {
+    std::set<FixedString> ret;
+    if (empty()) {
+      return ret;
     }
-    out << rhs.key[i];
+    char tmp[60]{};
+    int tmpLength = 0;
+    for (int i = 0; i < L && key[i] != '\0'; i++) {
+      if (key[i] != '|') {
+        tmp[tmpLength++] = key[i];
+      } else {
+        if (tmpLength == 0) {
+          throw Error("Empty keyword!");
+        }
+        if (!ret.insert(FixedString{std::string(tmp, tmpLength)}).second) {
+          throw Error("Duplicate keyword!");
+        }
+        tmpLength = 0; //needn't reset tmp
+      }
+    }
+    if (tmpLength == 0) {
+      throw Error("Empty keyword!");
+    }
+    if (!ret.insert(FixedString{std::string(tmp, tmpLength)}).second) {
+      throw Error("Duplicate keyword!");
+    }
+    return ret;
   }
-  return out;
-}
+
+};
 
 typedef FixedString<20> String20;
 typedef FixedString<30> String30;
@@ -83,12 +113,23 @@ enum Privilege {
   GUEST = 0, CUSTOMER = 1, CLERK = 3, ADMIN = 7
 };
 
-enum BookDataSearchID {
-  ISBN_SEARCH, NAME_SEARCH, AUTHOR_SEARCH, KEYWORD_SEARCH
+enum BookDataID {
+  ISBN_TYPE, NAME_TYPE, AUTHOR_TYPE, KEYWORD_TYPE, PRICE_TYPE
 };
 
-enum BookDataModifyID {
-  ISBN_MODIFY, NAME_MODIFY, AUTHOR_MODIFY, KEYWORD_MODIFY, PRICE_MODIFY
+std::map<std::string, Privilege> privilegeMap = {
+  {"7", ADMIN},
+  {"3", CLERK},
+  {"1", CUSTOMER},
+  {"0", GUEST}
+};
+
+std::map<std::string, BookDataID> bookDataMap = {
+  {"ISBN_TYPE", ISBN_TYPE},
+  {"name",      NAME_TYPE},
+  {"author",    AUTHOR_TYPE},
+  {"keyword",   KEYWORD_TYPE},
+  {"price", PRICE_TYPE}
 };
 
 template<typename T>
@@ -108,56 +149,18 @@ double fromString(const std::string &s) {
 
 template<>
 Privilege fromString(const std::string &s) {
-  if(s=="7") {
-    return ADMIN;
+  if (privilegeMap.find(s) == privilegeMap.end()) {
+    throw Error("Invalid privilege!");
   }
-  if(s=="3") {
-    return CLERK;
-  }
-  if(s=="1") {
-    return CUSTOMER;
-  }
-  if(s=="0") {
-    return GUEST;
-  }
-  throw Error("Invalid privilege!");
+  return privilegeMap[s];
 }
 
 template<>
-BookDataSearchID fromString(const std::string &s) {
-  if(s=="-ISBN") {
-    return ISBN_SEARCH;
+BookDataID fromString(const std::string &s) {
+  if (bookDataMap.find(s) == bookDataMap.end()) {
+    throw Error("Invalid modify type!");
   }
-  if(s=="-name") {
-    return NAME_SEARCH;
-  }
-  if(s=="-author") {
-    return AUTHOR_SEARCH;
-  }
-  if(s=="-keyword") {
-    return KEYWORD_SEARCH;
-  }
-  throw Error("Invalid search type!");
-}
-
-template<>
-BookDataModifyID fromString(const std::string &s) {
-  if(s=="-ISBN") {
-    return ISBN_MODIFY;
-  }
-  if(s=="-name") {
-    return NAME_MODIFY;
-  }
-  if(s=="-author") {
-    return AUTHOR_MODIFY;
-  }
-  if(s=="-keyword") {
-    return KEYWORD_MODIFY;
-  }
-  if(s=="-price") {
-    return PRICE_MODIFY;
-  }
-  throw Error("Invalid modify type!");
+  return bookDataMap[s];
 }
 
 const std::string VISIBLE = R"([\x20-\x7E])";
@@ -166,17 +169,17 @@ const std::string DIGIT = "[0-9]";
 const std::string DIGIT_DOT = "[0-9.]";
 const std::string NO_QUOTIENT = R"([\x20-\x21\x23-\x7E])";
 
-std::regex merge(const std::string &c, int len) {
+std::regex merge(const std::string &c, int len) { //shouldn't be empty
   return std::regex("^(" + c + "{1," + std::to_string(len) + "})$");
 }
 
-std::regex mergeWithQuotient(const std::string &c, int len) {
+std::regex mergeWithQuotient(const std::string &c, int len) { //shouldn't be empty
   return std::regex("^\"(" + c + "{1," + std::to_string(len) + "})\"$");
 }
 
-std::regex options(const std::initializer_list<std::string>& strings) {
+std::regex options(const std::initializer_list<std::string> &strings) {
   std::string pattern = "^(";
-  for (const auto& s : strings) {
+  for (const auto &s: strings) {
     pattern += s;
     pattern += "|";
   }
@@ -196,13 +199,6 @@ const std::regex AUTHOR_PATTERN = mergeWithQuotient(NO_QUOTIENT, 60);
 const std::regex KEYWORD_PATTERN = mergeWithQuotient(NO_QUOTIENT, 60);
 const std::regex COUNT_PATTERN = merge(DIGIT, 10);
 const std::regex PRICE_PATTERN = merge(DIGIT_DOT, 13);
-const std::regex BOOK_DATA_SEARCH_PATTERN = options({"-ISBN", "-name", "-author", "-keyword"});
-const std::regex BOOK_DATA_MODIFY_PATTERN = options({"-ISBN", "-name", "-author", "-keyword", "-price"});
+const std::regex BOOK_DATA_PATTERN = options({"ISBN", "name", "author", "keyword", "price"});
 
-template<int L>
-std::vector<std::string> splitString(FixedString<L> str) {
-  std::regex re("\\|"); // Matches '|'
-  std::sregex_token_iterator first{str.begin(), str.begin() + str.len(), re, -1}, last;
-  return {first, last};
-}
 #endif //BOOKSTORE_DATA_TYPES_HPP

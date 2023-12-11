@@ -22,20 +22,21 @@ struct Account {
     return userID == rhs.userID;
   }
 
-  static const Account MIN;
-  static const Account MAX;
+  static constexpr Account min() {
+    return Account{String30::min()};
+  }
+
+  static constexpr Account max() {
+    return Account{String30::max()};
+  }
 
   [[nodiscard]] bool empty() const {
     return userID.empty();
   }
 };
 
-const Account Account::MIN = Account{String30::min()};
-const Account Account::MAX = Account{String30::max()};
 namespace Accounts {
-  namespace {
-    PersistentMap<String30, Account, 100> accountMap(false, "accounts");
-  }
+  PersistentMap<String30, Account, 100> accountMap(false, "accounts"); //TODO enlarge the size
 
   bool add(const Account &account) {
     return accountMap.put(account.userID, account);

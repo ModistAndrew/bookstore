@@ -23,7 +23,7 @@
 - Privilege: int
 ## Book
 - *UUID: unsigned int
-- *ISBN: string[20]
+- *ISBN_TYPE: string[20]
 - BookName: string[60]
 - Author: string[60]
 - Keyword: string[60]
@@ -97,34 +97,34 @@
         - User logged in
 ## Book
 ### Search[1]
-- Input: show (-ISBN=[ISBN] | -name="[BookName]" | -author="[Author]" | -keyword="[Keyword]")+
+- Input: show (-ISBN_TYPE=[ISBN_TYPE] | -name="[BookName]" | -author="[Author]" | -keyword="[Keyword]")+
 - Usage: Search for books with given information. Support multiple search conditions and multiple keywords
 - Output: 
-    - Success: Print [ISBN]\t[BookName]\t[Author]\t[Keyword]\t[Price]\t[stock]\n for each book with ascending order of ISBN
+    - Success: Print [ISBN_TYPE]\t[BookName]\t[Author]\t[Keyword]\t[Price]\t[stock]\n for each book with ascending order of ISBN_TYPE
 ### Buy[1]
-- Input: buy [ISBN] [Stock]
-- Usage: Buy [Stock] books with [ISBN]
+- Input: buy [ISBN_TYPE] [Stock]
+- Usage: Buy [Stock] books with [ISBN_TYPE]
 - Output: 
   - Success: Print total price, i.e., price * [Stock]
   - Fail: 
       - Book not exist
       - Not enough stock
 ### Add[3]
-- Input: add [ISBN] [Bookname] [Author] [Keyword] [Stock] [Price]
+- Input: add [ISBN_TYPE] [Bookname] [Author] [Keyword] [Stock] [Price]
 - Usage: Add books with given information for the first time
 - Output: 
   - Fail: 
       - Book already exist
 ### Modify[3]
-- Input: modify [ISBN] (-ISBN=[ISBN] | -name="[BookName]" | -author="[Author]" | -keyword="[Keyword]" | -price=[Price])+
+- Input: modify [ISBN_TYPE] (-ISBN_TYPE=[ISBN_TYPE] | -name="[BookName]" | -author="[Author]" | -keyword="[Keyword]" | -price=[Price])+
 - Usage: Modify books with given information. Overwrite all keywords if provided
 - Output: 
   - Fail: 
       - Book not exist
       - Multiple arguments for one field
-      - ISBN already exists
+      - ISBN_TYPE already exists
 ### Import[3]
-- Input: import [ISBN] [Stock] [Price]
+- Input: import [ISBN_TYPE] [Stock] [Price]
 - Usage: Import [Stock] books with total cost [Price]
 - Output: 
   - Fail: 
@@ -134,12 +134,12 @@
 - Input: income [Tick1] [Tick2]
 - Usage: Check income between [Tick1] and [Tick2]
 - Output: 
-  - Success: Print [ISBN]\t[Price]\t[stock]\n for each income log
+  - Success: Print [ISBN_TYPE]\t[Price]\t[stock]\n for each income log
 ### Check Income[7]
 - Input: outcome [Tick1] [Tick2]
 - Usage: Check outcome between [Tick1] and [Tick2]
 - Output:
-    - Success: Print [ISBN]\t[Price]\t[stock]\n for each outcome log
+    - Success: Print [ISBN_TYPE]\t[Price]\t[stock]\n for each outcome log
 ### Check Earning[7]
 - Input: earning [Tick1] [Tick2]
 - Usage: Check earning between [Tick1] and [Tick2]
@@ -179,4 +179,4 @@
 - PersistentMap
 - DataTypes
   - FixedString
-  - ISBN
+  - ISBN_TYPE
