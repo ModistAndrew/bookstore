@@ -15,6 +15,7 @@
 #include "Utils.hpp"
 #include "Account.hpp"
 #include "Status.hpp"
+#include "Log.hpp"
 
 namespace {
   typedef std::function<void()> Runnable;
@@ -92,6 +93,7 @@ namespace {
   Scanner PRICE = Scanner<double>(PRICE_PATTERN);
   std::set<BookDataID> BOOK_DATA_IDS; //similar to Scanner, call scanArgs() to assign value
   bool finance;
+
   void scanBookArgs(bool search) { //search is used to check
     BOOK_DATA_IDS.clear();
     finance = false;
@@ -100,9 +102,9 @@ namespace {
     BookDataID type;
     while (currentCommand >> c) {
       if (c != '-') {
-        if(search && c=='f') {
+        if (search && c == 'f') {
           getline(currentCommand, id, ' ');
-          if(id=="inance") {
+          if (id == "inance") {
             finance = true;
             COUNT.optional();
             return;
@@ -238,12 +240,8 @@ namespace Commands {
     addCommand("show", CUSTOMER, []() {
       scanBookArgs(true);
     }, []() {
-      if(finance) {
-        if(COUNT.present()) {
-
-        } else {
-
-        }
+      if (finance) {
+        Logs::printFinanceLog(COUNT.present() ? COUNT.get() : -1);
         return;
       }
       if (BOOK_DATA_IDS.empty()) {
@@ -287,8 +285,10 @@ namespace Commands {
       if (book.stock < COUNT.get()) {
         throw Error("Not enough stock");
       }
+      double cost = book.price * COUNT.get();
       book.stock -= COUNT.get();
-      std::cout << book.price * COUNT.get() << std::endl;
+      std::cout << std::setiosflags(std::ios::fixed) << std::setprecision(2) << cost << std::endl;
+      Logs::addFinanceLog(cost, 0);
     });
     addCommand("select", CLERK, []() {
       ISBN.require();
@@ -334,7 +334,7 @@ namespace Commands {
       auto book = Books::extract(Statuses::currentISBN());
       book.save = true;
       book.stock += COUNT.get();
-      double totalCost = PRICE.get(); //TODO
+      Logs::addFinanceLog(0, PRICE.get());
     });
   }
 
@@ -343,6 +343,9 @@ namespace Commands {
     //set the currentCommand every time
     std::string name;
     currentCommand >> name;
+    if (name.empty()) {
+      return; //skip empty command
+    }
     if (commands.find(name) == commands.end()) {
       throw Error("Invalid command");
     }
@@ -356,6 +359,5 @@ namespace Commands {
     }
     commands[name].execute();
   }
-
 }
 #endif //BOOKSTORE_COMMAND_HPP

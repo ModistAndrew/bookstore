@@ -34,7 +34,6 @@ private:
   //store pointer to first empty just after info len.
   //empty except end has pointer to next empty; check EOF to determine whether at end. (so don't store anything after this)
 public:
-  FileStorage(FileStorage &&)  noexcept = default;
   explicit FileStorage(const string &file_name) : fileName("storage/"+file_name+".dat") {
     init();
     file.open(fileName, std::ios::in | std::ios::out);

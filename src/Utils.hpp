@@ -223,5 +223,5 @@ const std::regex KEYWORD_PATTERN = mergeWithQuotient(NO_QUOTIENT, 60);
 const std::regex COUNT_PATTERN = merge(DIGIT, 10);
 const std::regex PRICE_PATTERN = merge(DIGIT_DOT, 13);
 const std::regex BOOK_DATA_PATTERN = options({"ISBN", "name", "author", "keyword", "price"});
-
+//TODO: a custom Double class
 #endif //BOOKSTORE_DATA_TYPES_HPP

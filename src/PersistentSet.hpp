@@ -102,8 +102,6 @@ public:
     indexBlock = storage.getInfo();
   }
 
-  PersistentSet(PersistentSet &&) = default;
-
   ~PersistentSet() {
     storage.setInfo(indexBlock);
   }
@@ -189,8 +187,6 @@ class PersistentMap : public PersistentSet<std::pair<KEY, VALUE>, SIZE> {
 public:
   explicit PersistentMap(bool multi, const string &file_name) : multi(multi),
                                                                 PersistentSet<std::pair<KEY, VALUE>, SIZE>(file_name) {}
-
-  PersistentMap(PersistentMap &&) = default;
 
   bool put(const KEY &k, const VALUE &v) { //return true if put successfully
     if (multi) {

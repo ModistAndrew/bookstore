@@ -1,15 +1,15 @@
 #include "Command.hpp"
+#include "PersistentVector.hpp"
 
 int main() {
   Accounts::init();
   Commands::init();
-  while (true) {
+  std::string input;
+  while (getline(std::cin, input)) {
     try {
-      std::string input;
-      getline(std::cin, input);
       Commands::run(input);
     } catch (Error &ex) {
-      std::cout << ex.getMessage() << std::endl;
+      std::cout << "Invalid" << std::endl;
     }
   }
 }
