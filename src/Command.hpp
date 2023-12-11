@@ -241,6 +241,9 @@ namespace Commands {
       scanBookArgs(true);
     }, []() {
       if (finance) {
+        if(Statuses::currentPrivilege() != ADMIN) { //I forgot that only admin can see finance logs
+          throw PermissionDenied();
+        }
         Logs::printFinanceLog(COUNT.present() ? COUNT.get() : -1);
         return;
       }
