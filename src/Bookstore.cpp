@@ -9,7 +9,7 @@ int main() {
     try {
       Commands::run(input);
     } catch (Error &ex) {
-      std::cout << "Invalid" << std::endl;
+      std::cout << "Invalid\n";
     }
   }
 }

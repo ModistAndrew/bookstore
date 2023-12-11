@@ -22,7 +22,7 @@ namespace Logs {
 
   void printFinanceLog(int cnt) {
     if(cnt==0) {
-      std::cout << std::endl;
+      std::cout << '\n';
       return;
     }
     FinanceLog total{};
@@ -30,7 +30,7 @@ namespace Logs {
       total.income += log.income;
       total.outcome += log.outcome;
     });
-    std::cout << total << std::endl;
+    std::cout << total << '\n';
   }
 }
 #endif //BOOKSTORE_LOG_HPP

@@ -246,31 +246,31 @@ namespace Commands {
       }
       if (BOOK_DATA_IDS.empty()) {
         Books::isbnMap.iterateAll(String20::min(), String20::max(), [](const Book &b) {
-          std::cout << b << std::endl;
-        }, []() { std::cout << std::endl; });
+          std::cout << b << '\n';
+        }, []() { std::cout << '\n'; });
         return;
       }
       BookDataID id = *BOOK_DATA_IDS.begin();
       switch (id) {
         case ISBN_TYPE:
           Books::isbnMap.iterate(ISBN.get(), [](const Book &b) {
-            std::cout << b << std::endl;
-          }, []() { std::cout << std::endl; });
+            std::cout << b << '\n';
+          }, []() { std::cout << '\n'; });
           break;
         case NAME_TYPE:
           Books::nameMap.iterate(NAME.get(), [](const Book &b) {
-            std::cout << b << std::endl;
-          }, []() { std::cout << std::endl; });
+            std::cout << b << '\n';
+          }, []() { std::cout << '\n'; });
           break;
         case AUTHOR_TYPE:
           Books::authorMap.iterate(AUTHOR.get(), [](const Book &b) {
-            std::cout << b << std::endl;
-          }, []() { std::cout << std::endl; });
+            std::cout << b << '\n';
+          }, []() { std::cout << '\n'; });
           break;
         case KEYWORD_TYPE:
           Books::keywordMap.iterate(KEYWORD.get(), [](const Book &b) {
-            std::cout << b << std::endl;
-          }, []() { std::cout << std::endl; });
+            std::cout << b << '\n';
+          }, []() { std::cout << '\n'; });
           break;
         case PRICE_TYPE:
           throw Error("Cannot search by price, this should not happen!");
@@ -290,7 +290,7 @@ namespace Commands {
       }
       Double cost = book.price * COUNT.get();
       book.stock -= COUNT.get();
-      std::cout << cost << std::endl;
+      std::cout << cost << '\n';
       Logs::addFinanceLog(cost, Double(0));
     });
     addCommand("select", CLERK, []() {
