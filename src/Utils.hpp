@@ -20,7 +20,6 @@ public:
     if (s.length() > L) {
       throw Error("String too long, this should never happen!");
     }
-    FixedString &fx = *this;
     strncpy(key, s.c_str(), L);
   }
 
@@ -74,7 +73,7 @@ public:
     return key[0] == '\0';
   }
 
-  std::set<FixedString> split() const {
+  [[nodiscard]] std::set<FixedString> split() const {
     std::set<FixedString> ret;
     if (empty()) {
       return ret;
@@ -125,11 +124,11 @@ std::map<std::string, Privilege> privilegeMap = {
 };
 
 std::map<std::string, BookDataID> bookDataMap = {
-  {"ISBN_TYPE", ISBN_TYPE},
+  {"ISBN", ISBN_TYPE},
   {"name",      NAME_TYPE},
   {"author",    AUTHOR_TYPE},
   {"keyword",   KEYWORD_TYPE},
-  {"price", PRICE_TYPE}
+  {"price",     PRICE_TYPE}
 };
 
 template<typename T>
@@ -156,9 +155,33 @@ Privilege fromString(const std::string &s) {
 }
 
 template<>
+String20 fromString(const std::string &s) {
+  if(s.empty()) {
+    throw Error("Empty String!");
+  }
+  return String20(s);
+}
+
+template<>
+String30 fromString(const std::string &s) {
+  if(s.empty()) {
+    throw Error("Empty String!");
+  }
+  return String30(s);
+}
+
+template<>
+String60 fromString(const std::string &s) {
+  if(s.empty()) {
+    throw Error("Empty String!");
+  }
+  return String60(s);
+}
+
+template<>
 BookDataID fromString(const std::string &s) {
   if (bookDataMap.find(s) == bookDataMap.end()) {
-    throw Error("Invalid modify type!");
+    throw Error("Invalid type!");
   }
   return bookDataMap[s];
 }

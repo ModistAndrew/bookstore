@@ -46,6 +46,14 @@ namespace Accounts {
     return accountMap.get(userID);
   }
 
+  Account require(const String30 &userID) {
+    Account account = get(userID);
+    if (account.empty()) {
+      throw Error("No such user");
+    }
+    return account;
+  }
+
   bool modify(const String30 &userID, const String30 &password) {
     Account account = get(userID);
     if (account.empty()) {

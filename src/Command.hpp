@@ -24,7 +24,7 @@ namespace {
     Privilege minPrivilege = GUEST;
     Runnable getArgs;
     Runnable execute;
-  };
+  }; //always check before execute
 
   std::map<std::string, Command> commands;
 
@@ -33,95 +33,122 @@ namespace {
   }
 
   template<typename T>
-  class Scanner {
-  protected:
-    std::function<T(const std::string &)> toT; //try to cast the string to T. may throw error
+  class Scanner { //needn't reset if you just visit those evaluated
+    std::regex reg;
   public:
-    explicit Scanner(std::function<T(const std::string &)> func) : toT(std::move(func)) {}
+    std::optional<T> value; //init with empty
 
-    explicit Scanner(const std::regex &pattern) : toT([pattern](const std::string &s) -> T {
+    explicit Scanner(std::regex pattern) : reg(std::move(pattern)) {}
+
+    T toT(const std::string &s) {
       std::smatch match;
-      if (!std::regex_match(s, match, pattern)) {
+      if (!std::regex_match(s, match, reg)) {
         throw SyntaxError();
       }
       return fromString<T>(match[1]);
-    }) {}
+    }
 
-    [[nodiscard]] virtual T eval() const {
+    void require() {
       std::string s;
       currentCommand >> s;
       if (s.empty()) {
         throw SyntaxError();
       }
-      return toT(s);
+      value.emplace(toT(s));
     }
 
-    [[nodiscard]] virtual std::optional<T> evalOnce() const {
-      std::optional<T> ret;
+    void optional() {
       std::string s;
       currentCommand >> s;
       if (!s.empty()) {
-        ret.emplace(toT(s));
+        value.emplace(toT(s));
+      } else {
+        value = std::nullopt; //reset
       }
-      return ret;
+    }
+
+    [[nodiscard]] T get() const {
+      if (value == std::nullopt) {
+        throw Error("No value");
+      }
+      return value.value();
+    }
+
+    [[nodiscard]] bool present() const {
+      return value != std::nullopt;
     }
   };
 
-  template<typename T>
-  class ArgScanner : public Scanner<T> {
-  public:
-    explicit ArgScanner(const std::regex &pattern) : Scanner<T>(pattern) {}
-
-    [[nodiscard]] T eval() const override {
-      std::string s;
-      char c;
-      currentCommand >> c; //skip the '-'
-      std::getline(currentCommand, s, '=');
-      if (s.empty()) {
+  Scanner USER_ID = Scanner<String30>(USER_ID_PATTERN);
+  Scanner PASSWORD = Scanner<String30>(PASSWORD_PATTERN);
+  Scanner PASSWORD2 = Scanner<String30>(PASSWORD_PATTERN);
+  Scanner USER_NAME = Scanner<String30>(USER_NAME_PATTERN);
+  Scanner PRIVILEGE = Scanner<Privilege>(PRIVILEGE_PATTERN);
+  Scanner ISBN = Scanner<String20>(ISBN_PATTERN);
+  Scanner NAME = Scanner<String60>(NAME_PATTERN);
+  Scanner AUTHOR = Scanner<String60>(AUTHOR_PATTERN);
+  Scanner KEYWORD = Scanner<String60>(KEYWORD_PATTERN);
+  Scanner COUNT = Scanner<int>(COUNT_PATTERN);
+  Scanner PRICE = Scanner<double>(PRICE_PATTERN);
+  std::set<BookDataID> BOOK_DATA_IDS; //similar to Scanner, call scanArgs() to assign value
+  bool finance;
+  void scanBookArgs(bool search) { //search is used to check
+    BOOK_DATA_IDS.clear();
+    finance = false;
+    char c;
+    std::string id;
+    BookDataID type;
+    while (currentCommand >> c) {
+      if (c != '-') {
+        if(search && c=='f') {
+          getline(currentCommand, id, ' ');
+          if(id=="inance") {
+            finance = true;
+            COUNT.optional();
+            return;
+          }
+          throw SyntaxError();
+        }
         throw SyntaxError();
       }
-      return this->toT(s);
-    }
-
-    [[nodiscard]] std::optional<T> evalOnce() const override {
-      std::optional<T> ret;
-      std::string s;
-      char c;
-      currentCommand >> c; //skip the '-'
-      std::getline(currentCommand, s, '=');
-      if (!s.empty()) {
-        ret.emplace(this->toT(s));
+      getline(currentCommand, id, '=');
+      type = fromString<BookDataID>(id);
+      if (!BOOK_DATA_IDS.insert(type).second) {
+        throw Error("Duplicate argument");
       }
-      return ret;
+      switch (type) {
+        case ISBN_TYPE:
+          ISBN.require();
+          if (!search && !Books::isbnMap.get(ISBN.get()).empty()) {
+            throw Error("ISBN already exists");
+          }
+          break;
+        case NAME_TYPE:
+          NAME.require();
+          break;
+        case AUTHOR_TYPE:
+          AUTHOR.require();
+          break;
+        case PRICE_TYPE:
+          if (search) {
+            throw Error("Cannot search by price");
+          }
+          PRICE.require();
+          break;
+        case KEYWORD_TYPE:
+          KEYWORD.require();
+          auto v = KEYWORD.get().split(); //check valid
+          if (search && v.size() > 1) {
+            throw Error("Too many keywords for search");
+          }
+          break;
+      }
     }
-  };
-
-  const Scanner USER_ID = Scanner<String30>(USER_ID_PATTERN);
-  const Scanner PASSWORD = Scanner<String30>(PASSWORD_PATTERN);
-  const Scanner USER_NAME = Scanner<String30>(USER_NAME_PATTERN);
-  const Scanner PRIVILEGE = Scanner<Privilege>(PRIVILEGE_PATTERN);
-  const Scanner ISBN = Scanner<String20>(ISBN_PATTERN);
-  const Scanner NAME = Scanner<String60>(NAME_PATTERN);
-  const Scanner AUTHOR = Scanner<String60>(AUTHOR_PATTERN);
-  const Scanner KEYWORD = Scanner<String60>(KEYWORD_PATTERN);
-  const Scanner COUNT = Scanner<int>(COUNT_PATTERN);
-  const Scanner PRICE = Scanner<double>(PRICE_PATTERN);
-  const ArgScanner BOOK_DATA = ArgScanner<BookDataID>(BOOK_DATA_PATTERN);
-  //notice the order!!!
-
-  Account checkAccount() {
-    Account account = Accounts::get(USER_ID.eval());
-    if (account.empty()) {
-      throw Error("Invalid user id");
+    if (search && BOOK_DATA_IDS.size() > 1) {
+      throw Error("Too many arguments for search");
     }
-    return account;
-  }
-
-  void end() { //you should call it after every arg is extracted but before the command is executed.
-    std::string tmp;
-    currentCommand >> tmp;
-    if (!tmp.empty()) {
-      throw SyntaxError();
+    if (!search && BOOK_DATA_IDS.empty()) {
+      throw Error("No argument for modify");
     }
   }
 }
@@ -129,183 +156,185 @@ namespace {
 namespace Commands {
 
   void init() {
-    addCommand("exit", GUEST, []() {
-      end();
+    addCommand("exit", GUEST, []() {}, []() {
       exit(0);
     });
-    addCommand("quit", GUEST, []() {
-      end();
+    addCommand("quit", GUEST, []() {}, []() {
       exit(0);
     });
     addCommand("su", GUEST, []() {
-      Account account = checkAccount();
-      std::optional<String30> password = PASSWORD.evalOnce();
-      end();
-      if (password == std::nullopt && Statuses::currentPrivilege() != ADMIN) {
-        throw PermissionDenied();
-      } else if (account.password != password.value()) {
-        throw Error("Wrong password");
+      USER_ID.require();
+      PASSWORD.optional();
+    }, []() {
+      Account account = Accounts::require(USER_ID.get());
+      if (!PASSWORD.present()) {
+        if (Statuses::currentPrivilege() != ADMIN) {
+          throw PermissionDenied();
+        }
+        Statuses::login(account);
+      } else {
+        if (account.password != PASSWORD.get()) {
+          throw Error("Wrong password");
+        }
+        Statuses::login(account);
       }
-      Statuses::login(account);
     });
-    addCommand("logout", CUSTOMER, []() {
-      end();
-      if (!Statuses::logout()) {
-        throw Error("Not login yet");
-      }
-    });
+    addCommand("logout", CUSTOMER, []() {},
+               []() {
+                 if (!Statuses::logout()) {
+                   throw Error("Not login yet");
+                 }
+               }
+    );
     addCommand("register", GUEST, []() {
-      String30 userID = USER_ID.eval();
-      String30 password = PASSWORD.eval();
-      String30 userName = USER_NAME.eval();
-      end();
-      if (!Accounts::add({userID, password, userName, CUSTOMER})) {
+      USER_ID.require();
+      PASSWORD.require();
+      USER_NAME.require();
+    }, []() {
+      if (!Accounts::add({USER_ID.get(), PASSWORD.get(), USER_NAME.get(), CUSTOMER})) {
         throw Error("Username already exists");
       }
     });
     addCommand("passwd", CUSTOMER, []() {
-      Account account = checkAccount();
-      String30 password1 = PASSWORD.eval();
-      std::optional<String30> password2 = PASSWORD.evalOnce();
-      end();
-      //be careful here as the input format is weird
-      if (password2 == std::nullopt) {
+      USER_ID.require();
+      PASSWORD.require();
+      PASSWORD2.optional();
+    }, []() {
+      Account account = Accounts::require(USER_ID.get());
+      if (!PASSWORD2.present()) {
         if (Statuses::currentPrivilege() != ADMIN) {
           throw PermissionDenied();
         }
-        Accounts::modify(account.userID, password1);
+        Accounts::modify(account.userID, PASSWORD.get());
       } else {
-        if (password1 != account.password) {
+        if (PASSWORD.get() != account.password) {
           throw Error("Wrong password");
         }
-        Accounts::modify(account.userID, password2.value());
+        Accounts::modify(account.userID, PASSWORD2.get());
       }
     });
     addCommand("useradd", CLERK, []() {
-      String30 userID = USER_ID.eval();
-      String30 password = PASSWORD.eval();
-      Privilege privilege = PRIVILEGE.eval();
-      String30 userName = USER_NAME.eval();
-      end();
-      if (privilege >= Statuses::currentPrivilege()) {
+      USER_ID.require();
+      PASSWORD.require();
+      PRIVILEGE.require();
+      USER_NAME.require();
+    }, []() {
+      if (PRIVILEGE.get() >= Statuses::currentPrivilege()) {
         throw PermissionDenied();
       }
-      if (!Accounts::add({userID, password, userName, privilege})) {
+      if (!Accounts::add({USER_ID.get(), PASSWORD.get(), USER_NAME.get(), PRIVILEGE.get()})) {
         throw Error("Username already exists");
       }
     });
     addCommand("delete", ADMIN, []() {
-      Account account = checkAccount();
-      end();
+      USER_ID.require();
+    }, []() {
+      Account account = Accounts::require(USER_ID.get());
       if (Statuses::logged(account)) {
         throw Error("Cannot remove current user");
       }
       Accounts::remove(account.userID);
     });
     addCommand("show", CUSTOMER, []() {
-      std::optional<BookDataID> type = BOOK_DATA.evalOnce();
-      if (type == std::nullopt) {
+      scanBookArgs(true);
+    }, []() {
+      if(finance) {
+        if(COUNT.present()) {
+
+        } else {
+
+        }
+        return;
+      }
+      if (BOOK_DATA_IDS.empty()) {
         Books::isbnMap.iterateAll(String20::min(), String20::max(), [](const Book &b) {
           std::cout << b << std::endl;
         }, []() { std::cout << std::endl; });
-      } else
-        switch (type.value()) {
+        return;
+      }
+      BookDataID id = *BOOK_DATA_IDS.begin();
+      switch (id) {
         case ISBN_TYPE:
-            Books::isbnMap.iterate(ISBN_TYPE.eval(), [](const Book &b) {
-              std::cout << b << std::endl;
-            }, []() { std::cout << std::endl; });
-            break;
-          case NAME_SEARCH:
-            Books::nameMap.iterate(NAME_TYPE.eval(), [](const Book &b) {
-              std::cout << b << std::endl;
-            }, []() { std::cout << std::endl; });
-            break;
-          case AUTHOR_SEARCH:
-            Books::authorMap.iterate(AUTHOR_TYPE.eval(), [](const Book &b) {
-              std::cout << b << std::endl;
-            }, []() { std::cout << std::endl; });
-            break;
-          case KEYWORD_SEARCH:
-            String60 keyword = KEYWORD_TYPE.eval();
-            if (keyword.split().size() != 1) {
-              throw Error("Search keyword should be single");
-            }
-            Books::keywordMap.iterate(keyword, [](const Book &b) {
-              std::cout << b << std::endl;
-            }, []() { std::cout << std::endl; });
-            break;
-        }
-      end();
+          Books::isbnMap.iterate(ISBN.get(), [](const Book &b) {
+            std::cout << b << std::endl;
+          }, []() { std::cout << std::endl; });
+          break;
+        case NAME_TYPE:
+          Books::nameMap.iterate(NAME.get(), [](const Book &b) {
+            std::cout << b << std::endl;
+          }, []() { std::cout << std::endl; });
+          break;
+        case AUTHOR_TYPE:
+          Books::authorMap.iterate(AUTHOR.get(), [](const Book &b) {
+            std::cout << b << std::endl;
+          }, []() { std::cout << std::endl; });
+          break;
+        case KEYWORD_TYPE:
+          Books::keywordMap.iterate(KEYWORD.get(), [](const Book &b) {
+            std::cout << b << std::endl;
+          }, []() { std::cout << std::endl; });
+          break;
+        case PRICE_TYPE:
+          throw Error("Cannot search by price, this should not happen!");
+      }
     });
     addCommand("buy", CUSTOMER, []() {
-      String20 isbn = ISBN_TYPE.eval();
-      int count = COUNT.eval();
-      end();
-      auto book = Books::getBook(isbn);
-      if (book.empty()) {
-        throw Error("Invalid ISBN_TYPE");
-      }
-      if (book.stock < count) {
+      ISBN.require();
+      COUNT.require();
+    }, []() {
+      auto book = Books::extract(ISBN.get());
+      book.save = true;
+      if (book.stock < COUNT.get()) {
         throw Error("Not enough stock");
       }
-      book.stock -= count;
-      book.store = true; //TODO: store the price in log and print total price
+      book.stock -= COUNT.get();
+      std::cout << book.price * COUNT.get() << std::endl;
     });
     addCommand("select", CLERK, []() {
-      Books::select(ISBN_TYPE.eval());
-      end();
+      ISBN.require();
+    }, []() {
+      String20 isbn = ISBN.get();
+      Book tmp = Books::isbnMap.get(isbn);
+      if (tmp.empty()) {
+        tmp.isbn = isbn; //may be empty, create a new one and store it
+        Books::store(tmp);
+      }
+      Statuses::select(isbn);
     });
     addCommand("modify", CLERK, []() {
-      std::optional<Books::PersistentBook>& book = Books::currentBook; //use reference to avoid copy
-      if (book == std::nullopt) {
-        throw Error("No book is selected");
-      }
-      bool present[5]{};
-      bool empty = true;
-      while (true) {
-        std::optional<BookDataModifyID> type = BOOK_DATA_MODIFY.evalOnce();
-        if (type == std::nullopt) {
-          if (empty) {
-            throw Error("No modification");
-          }
-          break;
-        }
-        empty = false;
-        if (present[type.value()]) {
-          throw Error("Duplicate modify");
-        }
-        present[type.value()] = true;
-        switch (type.value()) {
-          case ISBN_MODIFY: //TODO: what if ISBN_TYPE is modified?
-            book->isbn = ISBN_TYPE.eval();
+      scanBookArgs(false);
+    }, []() {
+      auto book = Books::extract(Statuses::currentISBN());
+      book.save = true;
+      for (BookDataID id: BOOK_DATA_IDS) {
+        switch (id) {
+          case ISBN_TYPE:
+            Statuses::remapISBN(book.isbn, ISBN.get());
+            book.isbn = ISBN.get();
             break;
-          case NAME_MODIFY:
-            book->name = NAME_TYPE.eval();
+          case NAME_TYPE:
+            book.name = NAME.get();
             break;
-          case AUTHOR_MODIFY:
-            book->author = AUTHOR_TYPE.eval();
+          case AUTHOR_TYPE:
+            book.author = AUTHOR.get();
             break;
-          case PRICE_MODIFY:
-            book->price = PRICE_TYPE.eval();
+          case KEYWORD_TYPE:
+            book.keyword = KEYWORD.get();
             break;
-          case KEYWORD_MODIFY:
-            String60 keyword = KEYWORD_TYPE.eval();
-            keyword.split(); //just to check if the keyword is valid
-            book->keyword = keyword;
+          case PRICE_TYPE:
+            book.price = PRICE.get();
             break;
         }
       }
-      end();
     });
     addCommand("import", CLERK, []() {
-      std::optional<Books::PersistentBook>& book = Books::currentBook;
-      if (book == std::nullopt) {
-        throw Error("No book is selected");
-      }
-      int count = COUNT.eval();
-      double totalCost = PRICE_TYPE.eval(); //TODO: store the price in log
-      end();
-      book->stock += count;
+      COUNT.require();
+      PRICE.require();
+    }, []() {
+      auto book = Books::extract(Statuses::currentISBN());
+      book.save = true;
+      book.stock += COUNT.get();
+      double totalCost = PRICE.get(); //TODO
     });
   }
 
@@ -321,6 +350,10 @@ namespace Commands {
       throw PermissionDenied();
     }
     commands[name].getArgs();
+    char c;
+    if (currentCommand >> c) {
+      throw SyntaxError(); //check whether there are redundant arguments
+    }
     commands[name].execute();
   }
 
