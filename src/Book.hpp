@@ -15,7 +15,7 @@ struct Book {
   String60 name;
   String60 author;
   String60 keyword; //full keywords
-  double price;
+  Double price;
   int stock;
 
   auto operator<=>(const Book &rhs) const {
@@ -24,6 +24,11 @@ struct Book {
 
   bool operator==(const Book &rhs) const {
     return isbn == rhs.isbn;
+  }
+
+  friend std::ostream &operator<<(std::ostream &out, const Book &b) {
+    return out << b.isbn << '\t' << b.name << '\t' << b.author << '\t' << b.keyword << '\t'
+               << b.price << '\t' << b.stock;
   }
 
   [[nodiscard]] bool empty() const {
@@ -38,11 +43,6 @@ struct Book {
     return Book{String20::max()};
   }
 };
-
-std::ostream &operator<<(std::ostream &out, const Book &b) {
-  return out << b.isbn << '\t' << b.name << '\t' << b.author << '\t' << b.keyword << '\t'
-  << std::setiosflags(std::ios::fixed) << std::setprecision(2) << b.price << '\t' << b.stock; //TODO: precision of input?
-}
 
 namespace Books {
   template<typename T>

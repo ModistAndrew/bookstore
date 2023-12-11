@@ -90,7 +90,7 @@ namespace {
   Scanner AUTHOR = Scanner<String60>(AUTHOR_PATTERN);
   Scanner KEYWORD = Scanner<String60>(KEYWORD_PATTERN);
   Scanner COUNT = Scanner<int>(COUNT_PATTERN);
-  Scanner PRICE = Scanner<double>(PRICE_PATTERN);
+  Scanner PRICE = Scanner<Double>(PRICE_PATTERN);
   std::set<BookDataID> BOOK_DATA_IDS; //similar to Scanner, call scanArgs() to assign value
   bool finance;
 
@@ -285,10 +285,13 @@ namespace Commands {
       if (book.stock < COUNT.get()) {
         throw Error("Not enough stock");
       }
-      double cost = book.price * COUNT.get();
+      if(COUNT.get() <= 0) {
+        throw Error("Invalid count");
+      }
+      Double cost = book.price * COUNT.get();
       book.stock -= COUNT.get();
-      std::cout << std::setiosflags(std::ios::fixed) << std::setprecision(2) << cost << std::endl;
-      Logs::addFinanceLog(cost, 0);
+      std::cout << cost << std::endl;
+      Logs::addFinanceLog(cost, Double(0));
     });
     addCommand("select", CLERK, []() {
       ISBN.require();
@@ -334,7 +337,7 @@ namespace Commands {
       auto book = Books::extract(Statuses::currentISBN());
       book.save = true;
       book.stock += COUNT.get();
-      Logs::addFinanceLog(0, PRICE.get());
+      Logs::addFinanceLog(Double(0), PRICE.get());
     });
   }
 

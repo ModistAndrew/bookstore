@@ -11,6 +11,7 @@
 #include "Error.hpp"
 #include <set>
 #include <iostream>
+#include <iomanip>
 
 template<int L>
 class FixedString { // Fixed length string with max length L
@@ -104,6 +105,30 @@ public:
 
 };
 
+struct Double {
+  double value;
+  Double() = default;
+  explicit Double(double value) : value(value) {}
+  explicit Double(const std::string &s) : value(std::stod(s)) {
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(2) << value;
+    ss >> value;
+  }
+  auto operator<=>(const Double &rhs) const = default;
+  bool operator==(const Double &rhs) const = default;
+  friend std::ostream &operator<<(std::ostream &out, const Double &rhs) {
+    return out << std::setiosflags(std::ios::fixed) << std::setprecision(2) << rhs.value;
+  }
+  Double operator*(int rhs) const {
+    return Double(value * rhs);
+  }
+  Double& operator=(const Double &rhs) = default;
+  Double& operator+=(const Double &rhs) {
+    *this = Double(value + rhs.value);
+    return *this;
+  }
+};
+
 typedef FixedString<20> String20;
 typedef FixedString<30> String30;
 typedef FixedString<60> String60;
@@ -139,11 +164,6 @@ T fromString(const std::string &s) {
 template<>
 int fromString(const std::string &s) {
   return stoi(s);
-}
-
-template<>
-double fromString(const std::string &s) {
-  return stod(s);
 }
 
 template<>

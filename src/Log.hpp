@@ -7,21 +7,24 @@
 #include "PersistentVector.hpp"
 
 struct FinanceLog {
-  double income;
-  double outcome;
+  Double income;
+  Double outcome;
 };
 std::ostream &operator<<(std::ostream &out, const FinanceLog &log) {
-  return out << "+ " << std::setiosflags(std::ios::fixed) << std::setprecision(2) << log.income << " - "
-    << std::setiosflags(std::ios::fixed) << std::setprecision(2) << log.outcome;
+  return out << "+ " << log.income << " - " << log.outcome;
 }
 PersistentVector<FinanceLog> financeLog("finance");
 
 namespace Logs {
-  void addFinanceLog(double income, double outcome) {
+  void addFinanceLog(Double income, Double outcome) {
     financeLog.push_back({income, outcome});
   }
 
   void printFinanceLog(int cnt) {
+    if(cnt==0) {
+      std::cout << std::endl;
+      return;
+    }
     FinanceLog total{};
     financeLog.iterate(cnt, [&total](const FinanceLog &log) {
       total.income += log.income;
