@@ -16,6 +16,7 @@
 template<int L>
 struct FixedString { // Fixed length string with max length L
   char key[L];
+
   explicit FixedString(const std::string &s) : key{} {
     if (s.length() > L) {
       throw Error("String too long, this should never happen!");
@@ -106,23 +107,32 @@ struct FixedString { // Fixed length string with max length L
 
 struct Double {
   double value;
+
   Double() = default;
+
   explicit Double(double value) : value(value) {}
+
   explicit Double(const std::string &s) : value(std::stod(s)) {
     std::stringstream ss;
     ss << std::fixed << std::setprecision(2) << value;
     ss >> value;
   }
+
   auto operator<=>(const Double &rhs) const = default;
+
   bool operator==(const Double &rhs) const = default;
+
   friend std::ostream &operator<<(std::ostream &out, const Double &rhs) {
     return out << std::setiosflags(std::ios::fixed) << std::setprecision(2) << rhs.value;
   }
+
   Double operator*(int rhs) const {
     return Double(value * rhs);
   }
-  Double& operator=(const Double &rhs) = default;
-  Double& operator+=(const Double &rhs) {
+
+  Double &operator=(const Double &rhs) = default;
+
+  Double &operator+=(const Double &rhs) {
     *this = Double(value + rhs.value);
     return *this;
   }
@@ -148,11 +158,11 @@ std::map<std::string, Privilege> privilegeMap = {
 };
 
 std::map<std::string, BookDataID> bookDataMap = {
-  {"ISBN", ISBN_TYPE},
-  {"name",      NAME_TYPE},
-  {"author",    AUTHOR_TYPE},
-  {"keyword",   KEYWORD_TYPE},
-  {"price",     PRICE_TYPE}
+  {"ISBN",    ISBN_TYPE},
+  {"name",    NAME_TYPE},
+  {"author",  AUTHOR_TYPE},
+  {"keyword", KEYWORD_TYPE},
+  {"price",   PRICE_TYPE}
 };
 
 template<typename T>
@@ -175,7 +185,7 @@ Privilege fromString(const std::string &s) {
 
 template<>
 String20 fromString(const std::string &s) {
-  if(s.empty()) {
+  if (s.empty()) {
     throw Error("Empty String!");
   }
   return String20(s);
@@ -183,7 +193,7 @@ String20 fromString(const std::string &s) {
 
 template<>
 String30 fromString(const std::string &s) {
-  if(s.empty()) {
+  if (s.empty()) {
     throw Error("Empty String!");
   }
   return String30(s);
@@ -191,7 +201,7 @@ String30 fromString(const std::string &s) {
 
 template<>
 String60 fromString(const std::string &s) {
-  if(s.empty()) {
+  if (s.empty()) {
     throw Error("Empty String!");
   }
   return String60(s);
