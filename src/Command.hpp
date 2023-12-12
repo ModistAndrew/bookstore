@@ -16,10 +16,11 @@
 #include "Account.hpp"
 #include "Status.hpp"
 #include "Log.hpp"
+#include "StringReader.hpp"
 
 namespace {
   typedef std::function<void()> Runnable;
-  std::stringstream currentCommand;
+  StringReader currentCommand;
   struct Command {
     std::string name;
     Privilege minPrivilege = GUEST;
@@ -50,8 +51,7 @@ namespace {
     }
 
     void require() {
-      std::string s;
-      currentCommand >> s;
+      std::string s = currentCommand.get();
       if (s.empty()) {
         throw SyntaxError();
       }
@@ -59,8 +59,7 @@ namespace {
     }
 
     void optional() {
-      std::string s;
-      currentCommand >> s;
+      std::string s = currentCommand.get();
       if (!s.empty()) {
         value.emplace(toT(s));
       } else {
@@ -95,18 +94,19 @@ namespace {
 
   void scanBookArgs(bool search) { //search is used to check
     BOOK_DATA_IDS.clear();
-    char c;
-    std::string id;
+    std::string s;
     BookDataID type;
-    while (currentCommand >> c) {
-      if (c != '-') {
+    while (!currentCommand.empty()) {
+      s = currentCommand.get();
+      std::smatch result;
+      if(!std::regex_match(s, result, ARGS_PATTERN)) {
         throw SyntaxError();
       }
-      getline(currentCommand, id, '='); //get the id to the first '='
-      type = fromString<BookDataID>(id);
+      type = fromString<BookDataID>(result[1]);
       if (!BOOK_DATA_IDS.insert(type).second) {
         throw Error("Duplicate argument");
       }
+      currentCommand.store(result[2]);
       switch (type) {
         case ISBN_TYPE:
           ISBN.require();
@@ -309,6 +309,12 @@ namespace Commands {
       COUNT.require();
       PRICE.require();
     }, []() {
+      if(COUNT.get() <= 0) {
+        throw Error("Count must be positive");
+      }
+      if(PRICE.get() <= Double::min()) {
+        throw Error("Price must be positive");
+      }
       auto book = Books::extract(Statuses::currentISBN());
       book.save = true;
       book.stock += COUNT.get();
@@ -322,21 +328,16 @@ namespace Commands {
   }
 
   void run(const std::string &command) {
-    currentCommand = std::stringstream(command);
-    std::stringstream tmpStream(command);
-    //set the currentCommand every time
-    std::string name;
-    tmpStream >> name;
-    if (name.empty()) {
-      return; //skip empty command
+    currentCommand = StringReader(command); //set the currentCommand every time
+    if(currentCommand.empty()){
+      return; //skip empty line
     }
-    currentCommand >> name; //skip the first word
-    std::string name2;
-    tmpStream >> name2;
-    std::string name3 = name + " " + name2;
-    if(commands.find(name3) != commands.end()) { //first try to find the command with two words
-      name = name3; //set the name
-      currentCommand >> name2; //skip the second word
+    std::string name = currentCommand.get();
+    std::string name2 = currentCommand.touch();
+    std::string newName = name + " " + name2;
+    if(commands.find(newName) != commands.end()) { //first try to find the command with two words
+      currentCommand.get(); //skip the second word
+      name = newName; //set the name
     }
     if(commands.find(name) == commands.end()) {
       throw Error("Invalid command");
@@ -346,8 +347,7 @@ namespace Commands {
       throw PermissionDenied();
     }
     cmd.getArgs();
-    char c;
-    if (currentCommand >> c) {
+    if (!currentCommand.empty()) {
       throw SyntaxError(); //check whether there are redundant arguments
     }
     cmd.execute();

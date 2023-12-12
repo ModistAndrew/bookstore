@@ -107,27 +107,20 @@ public:
 };
 
 class Double {
-  double value;
+  long double value;
 
-  explicit Double(double value) : value(value) {}
+  explicit Double(long double value) : value(value) {}
 
 public:
 
   Double() = default;
 
   explicit Double(const std::string &s) {
-    int cnt = 0;
-    for (char i: std::ranges::reverse_view(s)) {
-      if (i == '.') {
-        cnt = -cnt;
-        break;
-      }
-      cnt--;
+    try {
+      value = std::stold(s);
+    } catch (...) {
+      throw Error("Invalid price!");
     }
-    if (cnt > 2) {
-      exit(-1);
-    }
-    value = std::stod(s);
   }
 
   auto operator<=>(const Double &rhs) const = default;
@@ -190,7 +183,11 @@ T fromString(const std::string &s) {
 
 template<>
 int fromString(const std::string &s) {
-  return stoi(s);
+  try {
+    return std::stoi(s);
+  } catch (...) {
+    throw Error("Invalid count!");
+  }
 }
 
 template<>
@@ -233,11 +230,11 @@ BookDataID fromString(const std::string &s) {
   return bookDataMap[s];
 }
 
-const std::string VISIBLE = R"([\x20-\x7E])";
+const std::string VISIBLE = "[!-~]";
 const std::string AZ = "[a-zA-Z0-9_]";
 const std::string DIGIT = "[0-9]";
 const std::string DIGIT_DOT = "[0-9.]";
-const std::string NO_QUOTIENT = R"([\x20-\x21\x23-\x7E])";
+const std::string NO_QUOTIENT = "[!#-~]";
 
 std::regex merge(const std::string &c, int len) { //shouldn't be empty
   return std::regex("^(" + c + "{1," + std::to_string(len) + "})$");
@@ -262,12 +259,12 @@ std::regex options(const std::initializer_list<std::string> &strings) {
 const std::regex USER_ID_PATTERN = merge(AZ, 30);
 const std::regex PASSWORD_PATTERN = merge(AZ, 30);
 const std::regex USER_NAME_PATTERN = merge(VISIBLE, 30);
-const std::regex PRIVILEGE_PATTERN = options({"0", "1", "3", "7"});
+const std::regex PRIVILEGE_PATTERN = options({"1", "3", "7"}); //ban "0" as you cannot add user with privilege 0
 const std::regex ISBN_PATTERN = merge(VISIBLE, 20);
 const std::regex NAME_PATTERN = mergeWithQuotient(NO_QUOTIENT, 60);
 const std::regex AUTHOR_PATTERN = mergeWithQuotient(NO_QUOTIENT, 60);
 const std::regex KEYWORD_PATTERN = mergeWithQuotient(NO_QUOTIENT, 60);
 const std::regex COUNT_PATTERN = merge(DIGIT, 10);
 const std::regex PRICE_PATTERN = merge(DIGIT_DOT, 13);
-const std::regex BOOK_DATA_PATTERN = options({"ISBN", "name", "author", "keyword", "price"});
+const std::regex ARGS_PATTERN = std::regex("^-(.*?)=(.*)$");
 #endif //BOOKSTORE_DATA_TYPES_HPP
