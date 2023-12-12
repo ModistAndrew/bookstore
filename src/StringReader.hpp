@@ -6,7 +6,7 @@
 #define BOOKSTORE_STRING_READER_HPP
 #include <vector>
 #include <string>
-class StringReader { //simply use ' ' as delim and provide function to store token back or touch
+class StringReader { //simply use ' ' as delim and provide function to store token back
   std::vector<std::string> words;
 public:
   StringReader() = default;
@@ -20,6 +20,7 @@ public:
           words.push_back(tmp);
           tmp.clear(); //push back the previous word
         }
+        space = true;
       } else {
         tmp.push_back(c);
         space = false;
