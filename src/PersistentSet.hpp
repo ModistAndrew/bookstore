@@ -220,7 +220,7 @@ public:
     return vec[0].second;
   }
 
-  void iterate(const KEY &k, const std::function<void(const VALUE &)> &f, const std::function<void()> &emptyF = []() {}) { //iterate all values of the key
+  void iterate(const KEY &k, const std::function<void(const VALUE &)> &f, const std::function<void()> &emptyF) { //iterate all values of the key
     const std::vector<std::pair<KEY, VALUE>> &v = this->search(std::make_pair(k, VALUE::min()),
                            std::make_pair(k, VALUE::max()));
     if (v.empty()) {
@@ -232,7 +232,7 @@ public:
     }
   }
 
-  void iterateAll(const KEY &k1, const KEY &k2, const std::function<void(const VALUE &)> &f, const std::function<void()> &emptyF = []() {}) { //iterate all values from k1 to k2
+  void iterateAll(const KEY &k1, const KEY &k2, const std::function<void(const VALUE &)> &f, const std::function<void()> &emptyF) { //iterate all values from k1 to k2
     const std::vector<std::pair<KEY, VALUE>> &v = this->search(std::make_pair(k1, VALUE::min()),
                                                                std::make_pair(k2, VALUE::max()));
     if (v.empty()) {
@@ -242,6 +242,22 @@ public:
         f(p.second);
       }
     }
+  }
+
+  void print(const KEY &k) {
+    this->iterate(k, [](const VALUE &v) {
+      std::cout << v << '\n';
+    }, []() {
+      std::cout << '\n';
+    });
+  }
+
+  void printAll(const KEY &k1, const KEY &k2) {
+    this->iterateAll(k1, k2, [](const VALUE &v) {
+      std::cout << v << '\n';
+    }, []() {
+      std::cout << '\n';
+    });
   }
 };
 

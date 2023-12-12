@@ -7,6 +7,7 @@
 
 #include <cstring>
 #include <map>
+#include <ranges>
 #include <variant>
 #include "Error.hpp"
 #include <set>
@@ -14,9 +15,9 @@
 #include <iomanip>
 
 template<int L>
-struct FixedString { // Fixed length string with max length L
+class FixedString { // Fixed length string with max length L
   char key[L];
-
+public:
   explicit FixedString(const std::string &s) : key{} {
     if (s.length() > L) {
       throw Error("String too long, this should never happen!");
@@ -105,17 +106,28 @@ struct FixedString { // Fixed length string with max length L
 
 };
 
-struct Double {
+class Double {
   double value;
-
-  Double() = default;
 
   explicit Double(double value) : value(value) {}
 
-  explicit Double(const std::string &s) : value(std::stod(s)) {
-    std::stringstream ss;
-    ss << std::fixed << std::setprecision(2) << value;
-    ss >> value;
+public:
+
+  Double() = default;
+
+  explicit Double(const std::string &s) {
+    int cnt = 0;
+    for (char i: std::ranges::reverse_view(s)) {
+      if (i == '.') {
+        cnt = -cnt;
+        break;
+      }
+      cnt--;
+    }
+    if (cnt > 2) {
+      exit(-1);
+    }
+    value = std::stod(s);
   }
 
   auto operator<=>(const Double &rhs) const = default;
@@ -135,6 +147,12 @@ struct Double {
   Double &operator+=(const Double &rhs) {
     *this = Double(value + rhs.value);
     return *this;
+  }
+
+  static constexpr Double min() {
+    Double ret{};
+    ret.value = 0;
+    return ret;
   }
 };
 

@@ -92,28 +92,17 @@ namespace {
   Scanner COUNT = Scanner<int>(COUNT_PATTERN);
   Scanner PRICE = Scanner<Double>(PRICE_PATTERN);
   std::set<BookDataID> BOOK_DATA_IDS; //similar to Scanner, call scanArgs() to assign value
-  bool finance;
 
   void scanBookArgs(bool search) { //search is used to check
     BOOK_DATA_IDS.clear();
-    finance = false;
     char c;
     std::string id;
     BookDataID type;
     while (currentCommand >> c) {
       if (c != '-') {
-        if (search && c == 'f') {
-          getline(currentCommand, id, ' ');
-          if (id == "inance") {
-            finance = true;
-            COUNT.optional();
-            return;
-          }
-          throw SyntaxError();
-        }
         throw SyntaxError();
       }
-      getline(currentCommand, id, '=');
+      getline(currentCommand, id, '='); //get the id to the first '='
       type = fromString<BookDataID>(id);
       if (!BOOK_DATA_IDS.insert(type).second) {
         throw Error("Duplicate argument");
@@ -170,7 +159,7 @@ namespace Commands {
     }, []() {
       Account account = Accounts::require(USER_ID.get());
       if (!PASSWORD.present()) {
-        if (Statuses::currentPrivilege() != ADMIN) {
+        if (Statuses::currentPrivilege() <= account.privilege) {
           throw PermissionDenied();
         }
         Statuses::login(account);
@@ -240,40 +229,23 @@ namespace Commands {
     addCommand("show", CUSTOMER, []() {
       scanBookArgs(true);
     }, []() {
-      if (finance) {
-        if(Statuses::currentPrivilege() != ADMIN) { //I forgot that only admin can see finance logs
-          throw PermissionDenied();
-        }
-        Logs::printFinanceLog(COUNT.present() ? COUNT.get() : -1);
-        return;
-      }
       if (BOOK_DATA_IDS.empty()) {
-        Books::isbnMap.iterateAll(String20::min(), String20::max(), [](const Book &b) {
-          std::cout << b << '\n';
-        }, []() { std::cout << '\n'; });
+        Books::isbnMap.printAll(String20::min(), String20::max());
         return;
       }
-      BookDataID id = *BOOK_DATA_IDS.begin();
+      BookDataID id = *BOOK_DATA_IDS.begin(); //the only one
       switch (id) {
         case ISBN_TYPE:
-          Books::isbnMap.iterate(ISBN.get(), [](const Book &b) {
-            std::cout << b << '\n';
-          }, []() { std::cout << '\n'; });
+          Books::isbnMap.print(ISBN.get());
           break;
         case NAME_TYPE:
-          Books::nameMap.iterate(NAME.get(), [](const Book &b) {
-            std::cout << b << '\n';
-          }, []() { std::cout << '\n'; });
+          Books::nameMap.print(NAME.get());
           break;
         case AUTHOR_TYPE:
-          Books::authorMap.iterate(AUTHOR.get(), [](const Book &b) {
-            std::cout << b << '\n';
-          }, []() { std::cout << '\n'; });
+          Books::authorMap.print(AUTHOR.get());
           break;
         case KEYWORD_TYPE:
-          Books::keywordMap.iterate(KEYWORD.get(), [](const Book &b) {
-            std::cout << b << '\n';
-          }, []() { std::cout << '\n'; });
+          Books::keywordMap.print(KEYWORD.get());
           break;
         case PRICE_TYPE:
           throw Error("Cannot search by price, this should not happen!");
@@ -294,7 +266,7 @@ namespace Commands {
       Double cost = book.price * COUNT.get();
       book.stock -= COUNT.get();
       std::cout << cost << '\n';
-      Logs::addFinanceLog(cost, Double(0));
+      Logs::addFinanceLog(cost, Double::min());
     });
     addCommand("select", CLERK, []() {
       ISBN.require();
@@ -340,30 +312,45 @@ namespace Commands {
       auto book = Books::extract(Statuses::currentISBN());
       book.save = true;
       book.stock += COUNT.get();
-      Logs::addFinanceLog(Double(0), PRICE.get());
+      Logs::addFinanceLog(Double::min(), PRICE.get());
+    });
+    addCommand("show finance", ADMIN, []() {
+      COUNT.optional();
+    }, []() {
+      Logs::printFinanceLog(COUNT.present() ? COUNT.get() : -1);
     });
   }
 
   void run(const std::string &command) {
     currentCommand = std::stringstream(command);
+    std::stringstream tmpStream(command);
     //set the currentCommand every time
     std::string name;
-    currentCommand >> name;
+    tmpStream >> name;
     if (name.empty()) {
       return; //skip empty command
     }
-    if (commands.find(name) == commands.end()) {
+    currentCommand >> name; //skip the first word
+    std::string name2;
+    tmpStream >> name2;
+    std::string name3 = name + " " + name2;
+    if(commands.find(name3) != commands.end()) { //first try to find the command with two words
+      name = name3; //set the name
+      currentCommand >> name2; //skip the second word
+    }
+    if(commands.find(name) == commands.end()) {
       throw Error("Invalid command");
     }
-    if (Statuses::currentPrivilege() < commands[name].minPrivilege) {
+    const Command &cmd = commands[name];
+    if (Statuses::currentPrivilege() < cmd.minPrivilege) {
       throw PermissionDenied();
     }
-    commands[name].getArgs();
+    cmd.getArgs();
     char c;
     if (currentCommand >> c) {
       throw SyntaxError(); //check whether there are redundant arguments
     }
-    commands[name].execute();
+    cmd.execute();
   }
 }
 #endif //BOOKSTORE_COMMAND_HPP

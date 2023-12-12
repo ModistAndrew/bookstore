@@ -46,7 +46,7 @@ struct Book {
 
 namespace Books {
   template<typename T>
-  using BookMap = PersistentMap<T, Book, 500>;
+  using BookMap = PersistentMap<T, Book, 450>;
   BookMap<String20> isbnMap(false, "isbn");
   BookMap<String60> nameMap(true, "name");
   BookMap<String60> authorMap(true, "author");

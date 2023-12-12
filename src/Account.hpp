@@ -36,7 +36,7 @@ struct Account {
 };
 
 namespace Accounts {
-  PersistentMap<String30, Account, 500> accountMap(false, "accounts");
+  PersistentMap<String30, Account, 450> accountMap(false, "accounts");
 
   bool add(const Account &account) {
     return accountMap.put(account.userID, account);
