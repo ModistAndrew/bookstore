@@ -36,7 +36,7 @@ private:
 public:
   explicit FileStorage(const string &file_name) : fileName("storage/"+file_name+".dat") {
     init();
-    file.open(fileName, std::ios::in | std::ios::out);
+    file.open(fileName, std::ios::in | std::ios::out | std::ios::binary);
   }
 
   ~FileStorage() {
@@ -48,7 +48,7 @@ public:
       return;
     }
     std::filesystem::create_directory("storage");
-    file.open(fileName, std::ios::out);
+    file.open(fileName, std::ios::out | std::ios::binary);
     INFO tmp{};
     file.write(reinterpret_cast<const char *>(&tmp), INFO_LEN);
     int empty = INFO_LEN + INT_SIZE;

@@ -23,33 +23,6 @@ std::set<Node> test;
 fstream file;
 Node tmp;
 
-void myAns(){
-  int value;
-  PersistentSet<Node, 500> test("test1.txt");
-  std::cin >> N;
-  std::string s;
-  for (int i = 1; i <= N; i++) {
-    std::cin >> s;
-    if (s[0] == 'i') {
-      std::cin >> s;
-      std::cin >> value;
-      test.insert(Node(s, value));
-    } else if (s[0] == 'f') {
-      std::cin >> s;
-      bool flag = false;
-      for (auto &n: test.search(Node(s, INT32_MIN), Node(s, INT32_MAX))) {
-        flag = true;
-        std::cout << n.value << " ";
-      }
-      std::cout << (flag ? "\n" : "null\n");
-    } else {
-      std::cin >> s;
-      std::cin >> value;
-      test.erase(Node(s, value));
-      }
-    }
-};
-
 void rightAns() {
   int value;
   std::cin >> N;
