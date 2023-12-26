@@ -7,11 +7,12 @@ int main() {
   std::string input;
   std::string label;
   while (getline(std::cin, input)) {
-    getline(std::cin, label);
-    std::cout << label << '\n';
+    Account current = Statuses::empty() ? Account::min() : Statuses::top();
+//    getline(std::cin, label);
+//    std::cout << label << '\n';
     try {
       Commands::run(input);
-      Logs::addOpLog(Statuses::top(), input);
+      Logs::addLog(current, input);
     } catch (Error &ex) {
       std::cerr << ex.getMessage() << '\n';
     }

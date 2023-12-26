@@ -152,6 +152,7 @@ public:
 typedef FixedString<20> String20;
 typedef FixedString<30> String30;
 typedef FixedString<60> String60;
+typedef FixedString<300> String300;
 
 std::string shorten(const std::string &s, int maxLen) {
   if (s.length() <= maxLen) {

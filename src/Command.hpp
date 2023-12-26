@@ -328,10 +328,10 @@ namespace Commands {
       Logs::reportFinance();
     });
     addCommand("report employee", ADMIN, []() {}, []() {
-      Logs::reportClerk();
+      Logs::reportEmployee();
     });
     addCommand("log", ADMIN, []() {}, []() {
-      Logs::reportOp();
+      Logs::reportFull();
     });
     addCommand("addBook", CLERK, []() {
       ISBN.require();

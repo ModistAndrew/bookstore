@@ -35,7 +35,10 @@ struct Account {
   }
 
   friend std::ostream &operator<<(std::ostream &out, const Account &b) {
-    return out << b.userID << '\t' << b.userName << '\t' << b.privilege;
+    if(b.empty()) {
+      return out << "GUEST";
+    }
+    return out << b.userID << ' ' << b.userName << ' ' << b.privilege;
   }
 };
 

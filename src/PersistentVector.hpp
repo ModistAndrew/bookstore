@@ -36,11 +36,17 @@ public:
     if (cnt > info.size) {
       throw Error("cnt > size");
     }
-    if(cnt == -1) {
+    if (cnt == -1) {
       cnt = info.size;
     }
     for (int i = 0; i < cnt; i++) {
       f(storage.get(info.last - i * STEP)); //as we never remove, this is safe
+    }
+  }
+
+  void iterateFromBegin(std::function<void(const T &)> f) {
+    for (int i = info.size - 1; i >= 0; i--) {
+      f(storage.get(info.last - i * STEP));
     }
   }
 };

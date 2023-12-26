@@ -16,21 +16,18 @@ struct FinanceLog {
   }
 };
 
-struct OpLog {
-  Account account;
-  String60 op;
-
-  friend std::ostream &operator<<(std::ostream &out, const OpLog &log) {
-    return out << log.account.userID << ": " << log.op;
-  }
-};
-
 PersistentVector<FinanceLog> financeLog("finance");
-PersistentVector<OpLog> opLog("op");
+PersistentVector<String300> employeeLog("employee");
+PersistentVector<String300> fullLog("full");
 
 namespace Logs {
+
   void addFinanceLog(Double income, Double outcome) {
-    financeLog.push_back({income, outcome});
+    FinanceLog f{income, outcome};
+    financeLog.push_back(f);
+    std::stringstream ss;
+    ss << f;
+    fullLog.push_back(String300(ss.str()));
   }
 
   void printFinanceLog(int cnt) {
@@ -47,25 +44,28 @@ namespace Logs {
   }
 
   void reportFinance() {
-    financeLog.iterate(-1, [](const FinanceLog &log) {
+    financeLog.iterateFromBegin([](const FinanceLog &log) {
       std::cout << log << '\n';
     });
   }
 
-  void addOpLog(const Account &account, const std::string &op) {
-    opLog.push_back({account, String60(shorten(op, 60))});
+  void addLog(const Account &account, const std::string &op) {
+    std::stringstream ss;
+    ss << account << ": " << op;
+    if(account.privilege >= CLERK) {
+      employeeLog.push_back(String300(ss.str()));
+    }
+    fullLog.push_back(String300(ss.str()));
   }
 
-  void reportClerk() {
-    opLog.iterate(-1, [](const OpLog &log) {
-      if (log.account.privilege >= CLERK) {
-        std::cout << log << '\n';
-      }
+  void reportEmployee() {
+    employeeLog.iterateFromBegin([](const String300 &log) {
+      std::cout << log << '\n';
     });
   }
 
-  void reportOp() {
-    opLog.iterate(-1, [](const OpLog &log) {
+  void reportFull() {
+    fullLog.iterateFromBegin([](const String300 &log) {
       std::cout << log << '\n';
     });
   }
