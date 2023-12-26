@@ -33,6 +33,10 @@ struct Account {
   [[nodiscard]] bool empty() const {
     return userID.empty();
   }
+
+  friend std::ostream &operator<<(std::ostream &out, const Account &b) {
+    return out << b.userID << '\t' << b.userName << '\t' << b.privilege;
+  }
 };
 
 namespace Accounts {

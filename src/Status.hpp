@@ -67,5 +67,11 @@ namespace Statuses {
       }
     }
   }
+
+  void printAccounts() {
+    for(const Status& s: statusStack) {
+      std::cout << s.account << '\n';
+    }
+  }
 }
 #endif //BOOKSTORE_STATUS_HPP

@@ -183,7 +183,7 @@ namespace Commands {
       USER_NAME.require();
     }, []() {
       if (!Accounts::add({USER_ID.get(), PASSWORD.get(), USER_NAME.get(), CUSTOMER})) {
-        throw Error("Username already exists");
+        throw Error("User Id already exists");
       }
     });
     addCommand("passwd", CUSTOMER, []() {
@@ -214,7 +214,7 @@ namespace Commands {
         throw PermissionDenied();
       }
       if (!Accounts::add({USER_ID.get(), PASSWORD.get(), USER_NAME.get(), PRIVILEGE.get()})) {
-        throw Error("Username already exists");
+        throw Error("User Id already exists");
       }
     });
     addCommand("delete", ADMIN, []() {
@@ -265,7 +265,6 @@ namespace Commands {
       }
       Double cost = book.price * COUNT.get();
       book.stock -= COUNT.get();
-      std::cout << cost << '\n';
       Logs::addFinanceLog(cost, Double::min());
     });
     addCommand("select", CLERK, []() {
@@ -324,6 +323,30 @@ namespace Commands {
       COUNT.optional();
     }, []() {
       Logs::printFinanceLog(COUNT.present() ? COUNT.get() : -1);
+    });
+    addCommand("report finance", ADMIN, []() {}, []() {
+      Logs::reportFinance();
+    });
+    addCommand("report employee", ADMIN, []() {}, []() {
+      Logs::reportClerk();
+    });
+    addCommand("log", ADMIN, []() {}, []() {
+      Logs::reportOp();
+    });
+    addCommand("addBook", CLERK, []() {
+      ISBN.require();
+    }, []() {
+      String20 isbn = ISBN.get();
+      Book tmp = Books::isbnMap.get(isbn);
+      if (tmp.empty()) {
+        tmp.isbn = isbn; //create a new one and store it
+        Books::store(tmp);
+      } else {
+        throw Error("ISBN already exists");
+      }
+    });
+    addCommand("showUser", GUEST, []() {}, []() {
+      Statuses::printAccounts();
     });
   }
 

@@ -153,6 +153,14 @@ typedef FixedString<20> String20;
 typedef FixedString<30> String30;
 typedef FixedString<60> String60;
 
+std::string shorten(const std::string &s, int maxLen) {
+  if (s.length() <= maxLen) {
+    return s;
+  } else {
+    return s.substr(0, maxLen - 3) + "...";
+  }
+}
+
 enum Privilege {
   GUEST = 0, CUSTOMER = 1, CLERK = 3, ADMIN = 7
 };
