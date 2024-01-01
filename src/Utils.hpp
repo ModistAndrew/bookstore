@@ -151,7 +151,7 @@ public:
 
 typedef FixedString<20> String20;
 typedef FixedString<30> String30;
-typedef FixedString<60> String60;
+typedef FixedString<240> String60Chinese;
 typedef FixedString<300> String300;
 
 std::string shorten(const std::string &s, int maxLen) {
@@ -224,11 +224,11 @@ String30 fromString(const std::string &s) {
 }
 
 template<>
-String60 fromString(const std::string &s) {
+String60Chinese fromString(const std::string &s) {
   if (s.empty()) {
     throw Error("Empty String!");
   }
-  return String60(s);
+  return String60Chinese(s);
 }
 
 template<>
@@ -243,7 +243,7 @@ const std::string VISIBLE = "[!-~]";
 const std::string AZ = "[a-zA-Z0-9_]";
 const std::string DIGIT = "[0-9]";
 const std::string DIGIT_DOT = "[0-9.]";
-const std::string NO_QUOTIENT = "[!#-~]";
+const std::string ANY = "[^\"]";
 
 std::regex merge(const std::string &c, int len) { //shouldn't be empty
   return std::regex("^(" + c + "{1," + std::to_string(len) + "})$");
@@ -270,9 +270,9 @@ const std::regex PASSWORD_PATTERN = merge(AZ, 30);
 const std::regex USER_NAME_PATTERN = merge(VISIBLE, 30);
 const std::regex PRIVILEGE_PATTERN = options({"1", "3", "7"}); //ban "0" as you cannot add user with privilege 0
 const std::regex ISBN_PATTERN = merge(VISIBLE, 20);
-const std::regex NAME_PATTERN = mergeWithQuotient(NO_QUOTIENT, 60);
-const std::regex AUTHOR_PATTERN = mergeWithQuotient(NO_QUOTIENT, 60);
-const std::regex KEYWORD_PATTERN = mergeWithQuotient(NO_QUOTIENT, 60);
+const std::regex NAME_PATTERN = mergeWithQuotient(ANY, 240);
+const std::regex AUTHOR_PATTERN = mergeWithQuotient(ANY, 240);
+const std::regex KEYWORD_PATTERN = mergeWithQuotient(ANY, 240); //left for frontend to check
 const std::regex COUNT_PATTERN = merge(DIGIT, 10);
 const std::regex PRICE_PATTERN = merge(DIGIT_DOT, 13);
 const std::regex ARGS_PATTERN = std::regex("^-(.*?)=(.*)$");

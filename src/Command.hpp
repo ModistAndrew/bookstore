@@ -85,9 +85,9 @@ namespace {
   Scanner USER_NAME = Scanner<String30>(USER_NAME_PATTERN);
   Scanner PRIVILEGE = Scanner<Privilege>(PRIVILEGE_PATTERN);
   Scanner ISBN = Scanner<String20>(ISBN_PATTERN);
-  Scanner NAME = Scanner<String60>(NAME_PATTERN);
-  Scanner AUTHOR = Scanner<String60>(AUTHOR_PATTERN);
-  Scanner KEYWORD = Scanner<String60>(KEYWORD_PATTERN);
+  Scanner NAME = Scanner<String60Chinese>(NAME_PATTERN);
+  Scanner AUTHOR = Scanner<String60Chinese>(AUTHOR_PATTERN);
+  Scanner KEYWORD = Scanner<String60Chinese>(KEYWORD_PATTERN);
   Scanner COUNT = Scanner<int>(COUNT_PATTERN);
   Scanner PRICE = Scanner<Double>(PRICE_PATTERN);
   std::set<BookDataID> BOOK_DATA_IDS; //similar to Scanner, call scanArgs() to assign value
@@ -265,6 +265,7 @@ namespace Commands {
       }
       Double cost = book.price * COUNT.get();
       book.stock -= COUNT.get();
+      std::cout << cost << '\n';
       Logs::addFinanceLog(cost, Double::min());
     });
     addCommand("select", CLERK, []() {

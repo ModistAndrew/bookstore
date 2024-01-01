@@ -46,4 +46,9 @@ public:
   explicit PermissionDenied() : Error("Permission denied") {
   }
 };
+class ValidationError : public Error {
+public:
+  explicit ValidationError() : Error("Validation error") {
+  }
+};
 #endif //CODE_ERROR_HPP
