@@ -1,0 +1,1 @@
+The operation supported in GUI is similar to [CLI](/doc/CLI.md) except that you can now add a book directly by specifying its ISBN instead of selecting with a non-existent ISBN. However, you should not execute the backend code.exe directly unless you know what you are doing! We have made some changes for the backend program to be compatible with the GUI frontend.

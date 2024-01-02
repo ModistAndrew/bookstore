@@ -2,3 +2,7 @@
 	path = Bookstore-2023
 	url = https://github.com/ACMClassCourse-2023/Bookstore-2023
 	update = merge
+[submodule "bookstore-vue"]
+	path = bookstore-vue
+	url = https://github.com/ModistAndrew/bookstore-vue
+	update = merge

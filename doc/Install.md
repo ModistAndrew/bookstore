@@ -1,0 +1,1 @@
+An NSIS installer for windows is provided in the release page. Other platforms are not supported yet.
