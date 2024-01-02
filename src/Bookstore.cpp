@@ -14,6 +14,7 @@ int main() {
     try {
       Commands::run(input);
       Logs::addLog(current, input);
+      std::cout << "SUCCESS" << '\n';
     } catch (Error &ex) {
       std::cerr << ex.getMessage() << '\n';
     }

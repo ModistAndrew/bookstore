@@ -21,13 +21,16 @@ PersistentVector<String300> employeeLog("employee");
 PersistentVector<String300> fullLog("full");
 
 namespace Logs {
+  String300 convert(const std::string& s) {
+    return String300(s.length()>300 ? s.substr(0, 297) + "..." : s);
+  }
 
   void addFinanceLog(Double income, Double outcome) {
     FinanceLog f{income, outcome};
     financeLog.push_back(f);
     std::stringstream ss;
     ss << f;
-    fullLog.push_back(String300(ss.str()));
+    fullLog.push_back(convert(ss.str()));
   }
 
   void printFinanceLog(int cnt) {
@@ -53,9 +56,9 @@ namespace Logs {
     std::stringstream ss;
     ss << account << ": " << op;
     if(account.privilege >= CLERK) {
-      employeeLog.push_back(String300(ss.str()));
+      employeeLog.push_back(convert(ss.str()));
     }
-    fullLog.push_back(String300(ss.str()));
+    fullLog.push_back(convert(ss.str()));
   }
 
   void reportEmployee() {

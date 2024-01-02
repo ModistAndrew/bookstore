@@ -12,9 +12,9 @@
 
 struct Book {
   String20 isbn;
-  String60Chinese name;
-  String60Chinese author;
-  String60Chinese keyword; //full keywords
+  String60 name;
+  String60 author;
+  String60 keyword; //full keywords
   Double price;
   int stock;
 
@@ -48,9 +48,9 @@ namespace Books {
   template<typename T>
   using BookMap = PersistentMap<T, Book, 450>;
   BookMap<String20> isbnMap(false, "isbn");
-  BookMap<String60Chinese> nameMap(true, "name");
-  BookMap<String60Chinese> authorMap(true, "author");
-  BookMap<String60Chinese> keywordMap(true, "keyword"); //key for each keyword
+  BookMap<String60> nameMap(true, "name");
+  BookMap<String60> authorMap(true, "author");
+  BookMap<String60> keywordMap(true, "keyword"); //key for each keyword
 
   void store(const Book &book) { //store the book into the maps. no empty book allowed
     if (book.empty()) {
@@ -59,7 +59,7 @@ namespace Books {
     isbnMap.put(book.isbn, book);
     nameMap.put(book.name, book);
     authorMap.put(book.author, book);
-    for (const String60Chinese &kw: book.keyword.split()) {
+    for (const String60 &kw: book.keyword.split()) {
       keywordMap.put(kw, book);
     }
   }
@@ -84,7 +84,7 @@ namespace Books {
     isbnMap.remove(ret.isbn, ret);
     nameMap.remove(ret.name, ret);
     authorMap.remove(ret.author, ret);
-    for (const String60Chinese &kw: ret.keyword.split()) {
+    for (const String60 &kw: ret.keyword.split()) {
       keywordMap.remove(kw, ret);
     }
     return ret;
